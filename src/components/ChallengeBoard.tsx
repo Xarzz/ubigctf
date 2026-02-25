@@ -179,7 +179,20 @@ export function ChallengeBoard() {
 
     return (
         <div className="space-y-12 pb-20">
-            {categories.length > 0 && (
+            {challenges.length === 0 && !isLoadingChallenges ? (
+                <div className="flex flex-col items-center justify-center py-20 animate-in fade-in zoom-in-95 duration-700">
+                    <div className="bg-primary/5 p-6 rounded-full mb-6 border border-primary/10 shadow-[0_0_30px_rgba(239,68,68,0.1)] relative">
+                        <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
+                        <TerminalSquare className="w-16 h-16 text-primary/50 relative z-10" />
+                    </div>
+                    <h2 className="text-3xl md:text-4xl font-black text-white mb-4 tracking-tight font-mono uppercase drop-shadow-[0_0_10px_rgba(239,68,68,0.3)]">
+                        No Targets Available
+                    </h2>
+                    <p className="text-muted-foreground/80 max-w-md mx-auto text-center bg-black/40 p-4 rounded-xl border border-white/5 font-mono text-sm leading-relaxed">
+                        The operation board is currently empty. Standby for new mission briefings from command.
+                    </p>
+                </div>
+            ) : categories.length > 0 && (
                 <section className="space-y-6">
                     <div className="flex flex-col md:flex-row items-center gap-4 border-b border-border/40 pb-4 justify-between">
                         <div className="flex items-center gap-4 justify-center w-full md:w-auto">
