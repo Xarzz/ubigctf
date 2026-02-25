@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState, useRef } from "react";
 import { Terminal, Lock, Mail, KeyRound, User, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import ReCAPTCHA from "react-google-recaptcha";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -15,7 +14,6 @@ export default function RegisterPage() {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [loading, setLoading] = useState(false);
-    const recaptchaRef = useRef<ReCAPTCHA>(null);
     const router = useRouter();
 
     const handleRegister = async (e: React.FormEvent) => {
@@ -23,12 +21,6 @@ export default function RegisterPage() {
 
         if (password !== confirmPassword) {
             toast.error("Passwords do not match");
-            return;
-        }
-
-        const recaptchaValue = recaptchaRef.current?.getValue();
-        if (!recaptchaValue) {
-            toast.error("Please complete the reCAPTCHA");
             return;
         }
 
@@ -41,8 +33,7 @@ export default function RegisterPage() {
                 options: {
                     data: {
                         username,
-                    },
-                    captchaToken: recaptchaValue,
+                    }
                 }
             });
 
@@ -57,7 +48,6 @@ export default function RegisterPage() {
             toast.error("An unexpected error occurred");
         } finally {
             setLoading(false);
-            recaptchaRef.current?.reset();
         }
     };
 
@@ -166,14 +156,6 @@ export default function RegisterPage() {
                                     className="w-full bg-black/40 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all font-mono tracking-widest placeholder:tracking-normal placeholder:text-slate-600"
                                 />
                             </div>
-                        </div>
-
-                        <div className="flex justify-center pt-2">
-                            <ReCAPTCHA
-                                ref={recaptchaRef}
-                                sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"}
-                                theme="dark"
-                            />
                         </div>
 
                         <Button
