@@ -115,20 +115,21 @@ export default function ProfilePage() {
                     </div>
 
                     {/* Basic Info */}
-                    <div className="flex-1 text-center md:text-left z-10 space-y-2">
-                        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white flex items-center justify-center md:justify-start gap-3 drop-shadow-sm">
-                            {displayName}
-                            <Shield className="w-7 h-7 text-primary drop-shadow-[0_0_10px_rgba(239,68,68,0.6)]" />
+                    <div className="flex-1 text-center md:text-left z-10 space-y-2 min-w-0">
+                        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white flex items-center justify-center md:justify-start gap-3 drop-shadow-sm min-w-0">
+                            <span className="truncate" title={displayName}>{displayName}</span>
+                            <Shield className="w-7 h-7 flex-shrink-0 text-primary drop-shadow-[0_0_10px_rgba(239,68,68,0.6)]" />
                         </h1>
-                        <p className="text-slate-400 flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 text-sm md:text-base font-medium">
-                            <span className="flex items-center gap-2">
-                                <Mail className="w-4 h-4 text-slate-500" /> {user.email}
+                        <p className="text-slate-400 flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 text-sm md:text-base font-medium min-w-0">
+                            <span className="flex items-center justify-center md:justify-start gap-2 truncate min-w-0 max-w-full">
+                                <Mail className="w-4 h-4 flex-shrink-0 text-slate-500" />
+                                <span className="truncate">{user.email}</span>
                             </span>
                         </p>
                     </div>
 
                     {/* Highly Visible Points Banner */}
-                    <div className="flex flex-row gap-3 md:gap-4 z-10 mt-4 md:mt-0 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 justify-center">
+                    <div className="flex flex-row gap-3 md:gap-4 z-10 mt-4 md:mt-0 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 justify-center shrink-0">
                         <div className="bg-gradient-to-b from-[#111] to-[#0a0a0c] border border-primary/30 rounded-2xl p-4 md:p-6 flex flex-col items-center justify-center min-w-[140px] shadow-[0_8px_30px_rgba(239,68,68,0.15)] relative overflow-hidden group hover:border-primary/50 transition-colors">
                             <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
