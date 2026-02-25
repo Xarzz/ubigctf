@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { TerminalSquare, ArrowRight } from "lucide-react";
 import { CyberNetwork } from "@/components/CyberNetwork";
+import { HackerText } from "@/components/HackerText";
 
 export default function Home() {
   return (
@@ -13,7 +14,7 @@ export default function Home() {
 
       <div className="flex flex-col items-center justify-center text-center mt-8 z-10 w-full max-w-4xl mx-auto">
         <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl font-sans text-white drop-shadow-[0_2px_10px_rgba(239,68,68,0.5)] mb-6 flex flex-wrap justify-center items-baseline gap-x-5 leading-tight">
-          <span>Welcome to</span> <span className="text-primary font-mono tracking-widest uppercase shadow-red-500 animate-typing">UbigCTF</span>
+          <span>Welcome to</span> <HackerText text="UBIGCTF" className="text-primary tracking-widest uppercase shadow-red-500" speed={40} delay={800} />
         </h1>
 
         {/* Separator Line */}
