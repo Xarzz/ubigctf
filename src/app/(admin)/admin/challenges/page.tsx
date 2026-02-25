@@ -1,24 +1,48 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Plus, Edit2, Trash2, Search, Target, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, Edit2, Trash2, Search, Target, CheckCircle2, XCircle, UploadCloud, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import useSWR from "swr";
 
 export default function AdminChallengesPage() {
-    const [challenges, setChallenges] = useState<any[]>([]);
-    const [categories, setCategories] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    // Extract data using SWR for automatic updates and caching
+    const fetchChallenges = async () => {
+        const { data, error } = await supabase
+            .from('challenges')
+            .select(`id, title, description, points, difficulty, flag, is_active, target_url, file_url, hints, categories (name)`)
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        return data || [];
+    };
+
+    const fetchCategories = async () => {
+        const { data, error } = await supabase.from('categories').select('*').order('name');
+        if (error) throw error;
+        return data || [];
+    };
+
+    const { data: challenges = [], mutate: mutateChallenges, isLoading } = useSWR('admin_challenges', fetchChallenges);
+    const { data: categories = [] } = useSWR('admin_categories', fetchCategories, {
+        onSuccess: (data) => {
+            if (data.length > 0 && !newChallenge.category_id) {
+                setNewChallenge(prev => ({ ...prev, category_id: data[0].id }));
+            }
+        }
+    });
+
     const [searchQuery, setSearchQuery] = useState("");
 
     // Add Challenge State
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [newChallenge, setNewChallenge] = useState({
         title: "",
         description: "",
@@ -26,42 +50,9 @@ export default function AdminChallengesPage() {
         points: 50,
         difficulty: "Easy",
         flag: "",
-        target_url: ""
+        target_url: "",
+        hints: [""],
     });
-
-    useEffect(() => {
-        fetchChallenges();
-        fetchCategories();
-    }, []);
-
-    const fetchCategories = async () => {
-        const { data, error } = await supabase.from('categories').select('*').order('name');
-        if (!error && data) {
-            setCategories(data);
-            if (data.length > 0) {
-                setNewChallenge(prev => ({ ...prev, category_id: data[0].id }));
-            }
-        }
-    };
-
-    const fetchChallenges = async () => {
-        try {
-            const { data, error } = await supabase
-                .from('challenges')
-                .select(`
-                    id, title, description, points, difficulty, flag, is_active, 
-                    categories (name)
-                `)
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            setChallenges(data || []);
-        } catch (error: any) {
-            toast.error("Failed to load challenges: " + error.message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     const toggleActive = async (id: string, currentState: boolean) => {
         const { error } = await supabase
@@ -71,7 +62,7 @@ export default function AdminChallengesPage() {
 
         if (!error) {
             toast.success(`Challenge ${!currentState ? 'activated' : 'deactivated'}!`);
-            fetchChallenges();
+            mutateChallenges();
         } else {
             toast.error(error.message);
         }
@@ -83,7 +74,7 @@ export default function AdminChallengesPage() {
         const { error } = await supabase.from('challenges').delete().eq('id', id);
         if (!error) {
             toast.success("Target permanently deleted from system.");
-            fetchChallenges();
+            mutateChallenges();
         } else {
             toast.error(error.message);
         }
@@ -93,17 +84,41 @@ export default function AdminChallengesPage() {
         e.preventDefault();
         setIsSubmitting(true);
         try {
+            // Filter out empty hints
+            const filteredHints = newChallenge.hints.filter(h => h.trim() !== "");
+
+            // Handle file upload
+            let uploadedFileUrl = "";
+            if (selectedFile) {
+                const fileExt = selectedFile.name.split('.').pop();
+                const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+                const { error: uploadError } = await supabase.storage.from("challenge_files").upload(fileName, selectedFile);
+                if (uploadError) throw new Error("File upload failed: " + uploadError.message);
+
+                // Get public URL
+                const { data: publicUrlData } = supabase.storage.from("challenge_files").getPublicUrl(fileName);
+                uploadedFileUrl = publicUrlData.publicUrl;
+            }
+
             const { error } = await supabase.from('challenges').insert([{
-                ...newChallenge,
-                points: Number(newChallenge.points)
+                title: newChallenge.title,
+                description: newChallenge.description,
+                category_id: newChallenge.category_id,
+                points: Number(newChallenge.points),
+                difficulty: newChallenge.difficulty,
+                flag: newChallenge.flag,
+                target_url: newChallenge.target_url,
+                hints: filteredHints,
+                file_url: uploadedFileUrl || null
             }]);
 
             if (error) throw error;
 
             toast.success("New mission parameters deployed successfully!");
             setIsAddModalOpen(false);
-            setNewChallenge({ title: "", description: "", category_id: categories[0]?.id || "", points: 50, difficulty: "Easy", flag: "", target_url: "" });
-            fetchChallenges();
+            setNewChallenge({ title: "", description: "", category_id: categories[0]?.id || "", points: 50, difficulty: "Easy", flag: "", target_url: "", hints: [""] });
+            setSelectedFile(null);
+            mutateChallenges();
         } catch (error: any) {
             toast.error(error.message || "Failed to deploy mission target.");
         } finally {
@@ -113,7 +128,7 @@ export default function AdminChallengesPage() {
 
     const filtered = challenges.filter(c =>
         c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (c.categories?.name && c.categories.name.toLowerCase().includes(searchQuery.toLowerCase()))
+        ((c.categories as any)?.name && (c.categories as any).name.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
     return (
@@ -179,15 +194,50 @@ export default function AdminChallengesPage() {
                                     <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Briefing (Description)</label>
                                     <textarea required rows={4} placeholder="Describe the mission details, hints, or instructions here..." className="flex w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary font-mono" value={newChallenge.description} onChange={e => setNewChallenge({ ...newChallenge, description: e.target.value })} />
                                 </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Hints (Optional)</label>
+                                    {newChallenge.hints.map((hint, index) => (
+                                        <div key={index} className="flex items-center gap-2 mb-2">
+                                            <Input
+                                                placeholder={`Hint ${index + 1}...`}
+                                                className="bg-white/5 border-white/10"
+                                                value={hint}
+                                                onChange={e => {
+                                                    const newHints = [...newChallenge.hints];
+                                                    newHints[index] = e.target.value;
+                                                    setNewChallenge({ ...newChallenge, hints: newHints });
+                                                }}
+                                            />
+                                            {index > 0 && (
+                                                <Button type="button" variant="ghost" size="icon" className="hover:text-red-500 flex-shrink-0" onClick={() => {
+                                                    setNewChallenge({ ...newChallenge, hints: newChallenge.hints.filter((_, i) => i !== index) });
+                                                }}>
+                                                    <X className="w-4 h-4" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <Button type="button" variant="outline" size="sm" className="border-white/10 text-xs mt-1" onClick={() => {
+                                        setNewChallenge({ ...newChallenge, hints: [...newChallenge.hints, ""] });
+                                    }}>
+                                        <Plus className="w-3 h-3 mr-1" /> Add Hint
+                                    </Button>
+                                </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Reward Points</label>
                                         <Input required type="number" min={0} className="bg-white/5 border-white/10 font-mono text-primary" value={newChallenge.points} onChange={e => setNewChallenge({ ...newChallenge, points: parseInt(e.target.value) || 0 })} />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Target URL / IP (Optional)</label>
+                                        <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Target URL / Host (Optional)</label>
                                         <Input placeholder="http://target.com" className="bg-white/5 border-white/10 font-mono" value={newChallenge.target_url} onChange={e => setNewChallenge({ ...newChallenge, target_url: e.target.value })} />
                                     </div>
+                                </div>
+                                <div className="space-y-2 p-4 border border-white/10 rounded-xl bg-black/40">
+                                    <label className="text-xs font-mono font-bold uppercase text-muted-foreground flex items-center gap-2">
+                                        <UploadCloud className="w-4 h-4" /> Attach Mission File (PDF, ZIP, PCAP, etc.)
+                                    </label>
+                                    <Input type="file" className="bg-white/5 border-white/10 file:text-primary file:font-mono file:bg-white/5 file:border-0 cursor-pointer pt-2" onChange={e => setSelectedFile(e.target.files?.[0] || null)} />
                                 </div>
                                 <div className="space-y-2 pt-2">
                                     <label className="text-xs font-mono font-bold uppercase text-primary">Capture Flag Secret</label>
@@ -247,7 +297,7 @@ export default function AdminChallengesPage() {
                                             {c.title}
                                         </td>
                                         <td className="px-6 py-4 text-slate-300">
-                                            {c.categories?.name || "Unknown"}
+                                            {(c.categories as any)?.name || "Unknown"}
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`px-2 py-1 rounded text-xs font-bold ${c.difficulty === 'Easy' ? 'bg-green-500/10 text-green-400' :

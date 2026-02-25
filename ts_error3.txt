@@ -1,0 +1,6 @@
+src/app/(admin)/admin/challenges/page.tsx(131,24): error TS2339: Property 'name' does not exist on type '{ name: any; }[]'.
+src/app/(admin)/admin/challenges/page.tsx(131,45): error TS2339: Property 'name' does not exist on type '{ name: any; }[]'.
+src/app/(admin)/admin/challenges/page.tsx(300,60): error TS2339: Property 'name' does not exist on type '{ name: any; }[]'.
+src/components/ChallengeBoard.tsx(17,36): error TS2304: Cannot find name 'Category'.
+src/components/ChallengeBoard.tsx(80,37): error TS2339: Property 'name' does not exist on type '{ name: any; }[]'.
+src/components/ChallengeBoard.tsx(190,68): error TS2304: Cannot find name 'Category'.

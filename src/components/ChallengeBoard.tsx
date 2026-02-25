@@ -1,20 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import { mockChallenges, Challenge, Category } from "@/data/challenges";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Flag, CheckCircle, Lock, Monitor, Shield, FileSearch, Code, EyeOff, TerminalSquare, ChevronLeft, ChevronRight, Search, Filter, Users } from "lucide-react";
+import { Flag, CheckCircle, Lock, Monitor, Shield, FileSearch, Code, EyeOff, TerminalSquare, ChevronLeft, ChevronRight, Search, Filter, Users, Download, ExternalLink, HelpCircle } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useUser } from "@/hooks/useUser";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import useSWR from "swr";
 
-const getCategoryIcon = (category: Category) => {
+const getCategoryIcon = (category: string) => {
     switch (category) {
         case "Web Exploitation":
             return <Monitor className="w-4 h-4 mr-1" />;
@@ -48,18 +48,63 @@ export function ChallengeBoard() {
     const { user, isLoaded } = useUser();
     const router = useRouter();
 
-    const [challenges, setChallenges] = useState<Challenge[]>(mockChallenges);
-    const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(null);
+    // SWR Fetcher
+    const fetchChallenges = async () => {
+        // Fetch active challenges
+        const { data: challengesData, error: cErr } = await supabase
+            .from('challenges')
+            .select(`id, title, description, points, difficulty, flag, is_active, target_url, file_url, hints, created_at, categories (name)`)
+            .eq('is_active', true)
+            .order('created_at', { ascending: false });
+
+        if (cErr) throw cErr;
+
+        let solvedSet = new Set<string>();
+
+        if (user) {
+            const { data: subsReq } = await supabase
+                .from('submissions')
+                .select('challenge_id')
+                .eq('user_id', user.id)
+                .eq('is_correct', true);
+
+            if (subsReq) {
+                subsReq.forEach(s => solvedSet.add(s.challenge_id));
+            }
+        }
+
+        return (challengesData || []).map(c => ({
+            id: c.id,
+            title: c.title,
+            description: c.description,
+            category: (c.categories as any)?.name || "Unknown",
+            points: c.points,
+            difficulty: c.difficulty,
+            flag: c.flag,
+            createdAt: c.created_at,
+            target_url: c.target_url,
+            file_url: c.file_url,
+            hints: c.hints || [],
+            solved: solvedSet.has(c.id),
+            solves: 0
+        }));
+    };
+
+    const { data: challenges = [], mutate: mutateChallenges, isLoading: isLoadingChallenges } = useSWR(
+        isLoaded ? ['public_challenges', user?.id] : null,
+        fetchChallenges,
+        { refreshInterval: 60000 } // Auto refetch every minute
+    );
+
+    const [selectedChallenge, setSelectedChallenge] = useState<any>(null);
     const [flagInput, setFlagInput] = useState("");
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [showHints, setShowHints] = useState<number>(0);
 
-    // Removing the hard redirect. Unauthenticated users will now see a blurred, unclickable grid instead.
-
-    // Group challenges by category
     const categories = Array.from(new Set(challenges.map(c => c.category)));
     const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
     const [searchQuery, setSearchQuery] = useState("");
-    const [difficultyFilter, setDifficultyFilter] = useState<"All" | "Easy" | "Medium" | "Hard">("All");
+    const [difficultyFilter, setDifficultyFilter] = useState<"All" | "Easy" | "Medium" | "Hard" | "Insane">("All");
 
     const activeCategory = categories.length > 0 ? categories[activeCategoryIndex] : "Loading...";
 
@@ -71,23 +116,41 @@ export function ChallengeBoard() {
         setActiveCategoryIndex((prev) => (prev - 1 + categories.length) % categories.length);
     };
 
-    const handleOpenDialog = (c: Challenge) => {
+    const handleOpenDialog = (c: any) => {
         setSelectedChallenge(c);
         setFlagInput("");
+        setShowHints(0);
         setIsDialogOpen(true);
     };
 
-    const handleSubmitFlag = () => {
-        if (!selectedChallenge) return;
+    const [isSubmittingFlag, setIsSubmittingFlag] = useState(false);
 
-        if (flagInput.trim() === selectedChallenge.flag) {
-            toast.success("Correct Flag! You have solved the challenge.");
-            setChallenges(prev =>
-                prev.map(c => c.id === selectedChallenge.id ? { ...c, solved: true } : c)
-            );
-            setIsDialogOpen(false);
-        } else {
-            toast.error("Incorrect flag. Keep trying!");
+    const handleSubmitFlag = async () => {
+        if (!selectedChallenge || !user) return;
+        setIsSubmittingFlag(true);
+
+        const isCorrect = flagInput.trim() === selectedChallenge.flag;
+
+        try {
+            // Log submission to database
+            await supabase.from('submissions').insert([{
+                user_id: user.id,
+                challenge_id: selectedChallenge.id,
+                is_correct: isCorrect,
+                submitted_flag: flagInput.trim()
+            }]);
+
+            if (isCorrect) {
+                toast.success("Correct Flag! You have captured the target.");
+                mutateChallenges(); // Instantly update board without refresh
+                setIsDialogOpen(false);
+            } else {
+                toast.error("Incorrect flag. Try harder!");
+            }
+        } catch (error) {
+            toast.error("Telemetry error: Could not verify flag.");
+        } finally {
+            setIsSubmittingFlag(false);
         }
     };
 
@@ -124,7 +187,7 @@ export function ChallengeBoard() {
                                 <ChevronLeft className="w-5 h-5" />
                             </Button>
                             <h2 className="text-xl md:text-2xl font-bold tracking-tight text-white flex items-center justify-center shadow-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.3)] min-w-[200px] md:min-w-[320px] text-center">
-                                {getCategoryIcon(activeCategory as Category)} <span className="ml-2 uppercase tracking-wide truncate">{activeCategory}</span>
+                                {getCategoryIcon(activeCategory as string)} <span className="ml-2 uppercase tracking-wide truncate">{activeCategory}</span>
                             </h2>
                             <Button variant="ghost" size="icon" onClick={nextCategory} className="hover:text-primary hover:bg-primary/20 rounded-full h-10 w-10 border border-primary/20 bg-background/50 shadow-[0_0_10px_rgba(239,68,68,0.1)] transition-all transform active:scale-95 flex-shrink-0">
                                 <ChevronRight className="w-5 h-5" />
@@ -156,6 +219,7 @@ export function ChallengeBoard() {
                                     <DropdownMenuItem onClick={() => setDifficultyFilter("Easy")} className="hover:bg-primary/20 hover:text-green-400 cursor-pointer transition-colors focus:bg-primary/20 text-green-500">Easy</DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => setDifficultyFilter("Medium")} className="hover:bg-primary/20 hover:text-yellow-400 cursor-pointer transition-colors focus:bg-primary/20 text-yellow-500">Medium</DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => setDifficultyFilter("Hard")} className="hover:bg-primary/20 hover:text-red-400 cursor-pointer transition-colors focus:bg-primary/20 text-red-500">Hard</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setDifficultyFilter("Insane")} className="hover:bg-primary/20 hover:text-purple-400 cursor-pointer transition-colors focus:bg-primary/20 text-purple-500">Insane</DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </div>
@@ -260,9 +324,45 @@ export function ChallengeBoard() {
                             </DialogHeader>
 
                             <div className="py-6 space-y-6">
-                                <div className="bg-secondary/50 p-4 rounded-md border border-border/50 text-muted-foreground/90 font-mono text-sm leading-relaxed">
+                                <div className="bg-secondary/50 p-4 rounded-md border border-border/50 text-muted-foreground/90 font-mono text-sm leading-relaxed whitespace-pre-wrap">
                                     {selectedChallenge.description}
                                 </div>
+
+                                {(selectedChallenge.target_url || selectedChallenge.file_url) && (
+                                    <div className="flex flex-wrap gap-2">
+                                        {selectedChallenge.target_url && (
+                                            <Button variant="outline" className="border-primary/50 text-primary hover:bg-primary/20 gap-2" onClick={() => window.open(selectedChallenge.target_url, '_blank')}>
+                                                <ExternalLink className="w-4 h-4" /> Open Target
+                                            </Button>
+                                        )}
+                                        {selectedChallenge.file_url && (
+                                            <Button variant="outline" className="border-blue-500/50 text-blue-400 hover:bg-blue-500/20 gap-2" onClick={() => window.open(selectedChallenge.file_url, '_blank')}>
+                                                <Download className="w-4 h-4" /> Download Material
+                                            </Button>
+                                        )}
+                                    </div>
+                                )}
+
+                                {selectedChallenge.hints && selectedChallenge.hints.length > 0 && (
+                                    <div className="space-y-2">
+                                        {selectedChallenge.hints.map((hint: string, hIdx: number) => {
+                                            const isUnlocked = showHints > hIdx;
+                                            return (
+                                                <div key={hIdx} className="relative">
+                                                    {!isUnlocked ? (
+                                                        <Button variant="secondary" className="w-full justify-start text-muted-foreground border border-dashed border-white/20" onClick={() => setShowHints(hIdx + 1)}>
+                                                            <HelpCircle className="w-4 h-4 mr-2" /> Unlock Hint {hIdx + 1}
+                                                        </Button>
+                                                    ) : (
+                                                        <div className="p-3 bg-black/50 border border-yellow-500/30 text-yellow-500/80 font-mono text-sm rounded-md shadow-[inset_0_0_10px_rgba(234,179,8,0.05)]">
+                                                            <span className="font-bold text-yellow-500 mr-2">Hint {hIdx + 1}:</span> {hint}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
 
                                 <div className="space-y-3">
                                     <label htmlFor="flag" className="text-sm font-semibold flex items-center text-gray-300">
@@ -284,8 +384,8 @@ export function ChallengeBoard() {
                                 <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="hover:bg-red-500/10 hover:text-red-400">
                                     Close
                                 </Button>
-                                <Button type="button" onClick={handleSubmitFlag} className="bg-primary text-white hover:bg-primary/90 shadow-[0_0_15px_rgba(239,68,68,0.4)]">
-                                    Submit
+                                <Button type="button" disabled={isSubmittingFlag || selectedChallenge.solved} onClick={handleSubmitFlag} className="bg-primary text-white hover:bg-primary/90 shadow-[0_0_15px_rgba(239,68,68,0.4)]">
+                                    {isSubmittingFlag ? "Verifying..." : selectedChallenge.solved ? "Already Captured" : "Submit"}
                                 </Button>
                             </DialogFooter>
                         </>
