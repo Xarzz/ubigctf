@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import useSWR from "swr";
+import imageCompression from 'browser-image-compression';
 
 export default function AdminChallengesPage() {
     // Extract data using SWR for automatic updates and caching
@@ -90,9 +91,28 @@ export default function AdminChallengesPage() {
             // Handle file upload
             let uploadedFileUrl = "";
             if (selectedFile) {
-                const fileExt = selectedFile.name.split('.').pop();
+                let fileToUpload = selectedFile;
+
+                // Compress if it's an image
+                if (selectedFile.type.startsWith("image/")) {
+                    toast.info("Compressing image payload...");
+                    try {
+                        const options = {
+                            maxSizeMB: 1,
+                            maxWidthOrHeight: 1280,
+                            useWebWorker: true,
+                            initialQuality: 0.8
+                        };
+                        fileToUpload = await imageCompression(selectedFile, options);
+                    } catch (error) {
+                        console.error("Compression Error:", error);
+                        toast.error("Compression failed, uploading original image.");
+                    }
+                }
+
+                const fileExt = fileToUpload.name.split('.').pop() || "bin";
                 const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-                const { error: uploadError } = await supabase.storage.from("challenge_files").upload(fileName, selectedFile);
+                const { error: uploadError } = await supabase.storage.from("challenge_files").upload(fileName, fileToUpload);
                 if (uploadError) throw new Error("File upload failed: " + uploadError.message);
 
                 // Get public URL
