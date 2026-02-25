@@ -7,16 +7,42 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AdminChallengesPage() {
     const [challenges, setChallenges] = useState<any[]>([]);
+    const [categories, setCategories] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
 
+    // Add Challenge State
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [newChallenge, setNewChallenge] = useState({
+        title: "",
+        description: "",
+        category_id: "",
+        points: 50,
+        difficulty: "Easy",
+        flag: "",
+        target_url: ""
+    });
+
     useEffect(() => {
         fetchChallenges();
+        fetchCategories();
     }, []);
+
+    const fetchCategories = async () => {
+        const { data, error } = await supabase.from('categories').select('*').order('name');
+        if (!error && data) {
+            setCategories(data);
+            if (data.length > 0) {
+                setNewChallenge(prev => ({ ...prev, category_id: data[0].id }));
+            }
+        }
+    };
 
     const fetchChallenges = async () => {
         try {
@@ -63,6 +89,28 @@ export default function AdminChallengesPage() {
         }
     };
 
+    const handleAddSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        try {
+            const { error } = await supabase.from('challenges').insert([{
+                ...newChallenge,
+                points: Number(newChallenge.points)
+            }]);
+
+            if (error) throw error;
+
+            toast.success("New mission parameters deployed successfully!");
+            setIsAddModalOpen(false);
+            setNewChallenge({ title: "", description: "", category_id: categories[0]?.id || "", points: 50, difficulty: "Easy", flag: "", target_url: "" });
+            fetchChallenges();
+        } catch (error: any) {
+            toast.error(error.message || "Failed to deploy mission target.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     const filtered = challenges.filter(c =>
         c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (c.categories?.name && c.categories.name.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -89,10 +137,72 @@ export default function AdminChallengesPage() {
                             onChange={e => setSearchQuery(e.target.value)}
                         />
                     </div>
-                    {/* Empty shell button for creating new challenges */}
-                    <Button className="font-bold gap-2">
-                        <Plus className="w-4 h-4" /> Deploy New
-                    </Button>
+
+                    <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+                        <DialogTrigger asChild>
+                            <Button className="font-bold gap-2 bg-primary hover:bg-primary/80 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)]">
+                                <Plus className="w-4 h-4" /> Deploy New
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="bg-black/95 border-border/50 text-slate-200 border-t-2 border-t-primary shadow-[0_0_50px_rgba(239,68,68,0.2)] max-w-2xl w-[90vw] h-[90vh] md:h-auto overflow-y-auto hidden-scrollbar">
+                            <DialogHeader>
+                                <DialogTitle className="text-2xl font-black font-mono text-white flex items-center gap-2">
+                                    <Target className="w-6 h-6 text-primary" /> NEW MISSION TARGET
+                                </DialogTitle>
+                            </DialogHeader>
+                            <form onSubmit={handleAddSubmit} className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Target Name</label>
+                                    <Input required placeholder="E.g. SQLi Vulnerability" className="bg-white/5 border-white/10" value={newChallenge.title} onChange={e => setNewChallenge({ ...newChallenge, title: e.target.value })} />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Category</label>
+                                        <select required className="flex h-10 w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary appearance-none" value={newChallenge.category_id} onChange={e => setNewChallenge({ ...newChallenge, category_id: e.target.value })}>
+                                            <option value="" disabled className="bg-black text-white">Select a category...</option>
+                                            {categories.map(cat => (
+                                                <option key={cat.id} value={cat.id} className="bg-black text-white">{cat.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Difficulty</label>
+                                        <select required className="flex h-10 w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary appearance-none" value={newChallenge.difficulty} onChange={e => setNewChallenge({ ...newChallenge, difficulty: e.target.value })}>
+                                            <option value="Easy" className="bg-black text-green-400">Easy</option>
+                                            <option value="Medium" className="bg-black text-yellow-500">Medium</option>
+                                            <option value="Hard" className="bg-black text-red-500">Hard</option>
+                                            <option value="Insane" className="bg-black text-purple-500">Insane</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Briefing (Description)</label>
+                                    <textarea required rows={4} placeholder="Describe the mission details, hints, or instructions here..." className="flex w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary font-mono" value={newChallenge.description} onChange={e => setNewChallenge({ ...newChallenge, description: e.target.value })} />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Reward Points</label>
+                                        <Input required type="number" min={0} className="bg-white/5 border-white/10 font-mono text-primary" value={newChallenge.points} onChange={e => setNewChallenge({ ...newChallenge, points: parseInt(e.target.value) || 0 })} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Target URL / IP (Optional)</label>
+                                        <Input placeholder="http://target.com" className="bg-white/5 border-white/10 font-mono" value={newChallenge.target_url} onChange={e => setNewChallenge({ ...newChallenge, target_url: e.target.value })} />
+                                    </div>
+                                </div>
+                                <div className="space-y-2 pt-2">
+                                    <label className="text-xs font-mono font-bold uppercase text-primary">Capture Flag Secret</label>
+                                    <Input required placeholder="ubigctf{...}" className="bg-primary/5 border-primary/30 font-mono text-white" value={newChallenge.flag} onChange={e => setNewChallenge({ ...newChallenge, flag: e.target.value })} />
+                                </div>
+
+                                <DialogFooter className="pt-6 sm:justify-end gap-2">
+                                    <Button type="button" variant="outline" className="border-white/10" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
+                                    <Button type="submit" disabled={isSubmitting} className="font-bold bg-primary hover:bg-primary/80 shadow-[0_0_15px_rgba(239,68,68,0.5)]">
+                                        {isSubmitting ? "Deploying..." : "Launch Target"}
+                                    </Button>
+                                </DialogFooter>
+                            </form>
+                        </DialogContent>
+                    </Dialog>
                 </div>
             </div>
 

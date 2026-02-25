@@ -1,0 +1,2 @@
+src/app/(admin)/admin/challenges/page.tsx(9,10): error TS2300: Duplicate identifier 'Badge'.
+src/app/(admin)/admin/challenges/page.tsx(11,10): error TS2300: Duplicate identifier 'Badge'.
