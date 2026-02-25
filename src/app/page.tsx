@@ -12,8 +12,8 @@ export default function Home() {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] pointer-events-none opacity-50 z-[-1]" />
 
       <div className="flex flex-col items-center justify-center text-center mt-8 z-10 w-full max-w-4xl mx-auto">
-        <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl font-sans text-white drop-shadow-[0_2px_10px_rgba(239,68,68,0.5)] mb-6 text-center leading-tight">
-          Welcome to <span className="text-primary font-mono tracking-widest uppercase shadow-red-500 animate-typing">UbigCTF</span>
+        <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl font-sans text-white drop-shadow-[0_2px_10px_rgba(239,68,68,0.5)] mb-6 flex justify-center items-baseline flex-wrap gap-x-4">
+          <span>Welcome to</span> <span className="text-primary font-mono tracking-widest uppercase shadow-red-500 animate-typing">UbigCTF</span>
         </h1>
 
         {/* Separator Line */}
