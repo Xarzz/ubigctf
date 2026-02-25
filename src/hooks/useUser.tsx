@@ -119,7 +119,24 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             profile,
             isLoaded,
             updateProfile,
-            signOut: async () => { await supabase.auth.signOut(); },
+            signOut: async () => {
+                try {
+                    await supabase.auth.signOut();
+                } catch (e) {
+                    console.error("SignOut error:", e);
+                } finally {
+                    // Forcefully clear session data from browser storage regardless of network error
+                    if (typeof window !== 'undefined') {
+                        Object.keys(localStorage).forEach(key => {
+                            if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+                                localStorage.removeItem(key);
+                            }
+                        });
+                    }
+                    setUserAuth(null);
+                    setProfile(null);
+                }
+            },
         }}>
             {children}
         </UserContext.Provider>
