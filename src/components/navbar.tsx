@@ -113,8 +113,9 @@ export function NavBar() {
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem
                                                     asChild
-                                                    onClick={() => {
-                                                        signOut();
+                                                    onClick={async (e) => {
+                                                        e.preventDefault();
+                                                        await signOut();
                                                         window.location.href = '/login';
                                                     }}
                                                     className="hover:bg-red-500/20 hover:text-red-400 cursor-pointer transition-colors focus:bg-red-500/20"

@@ -127,11 +127,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 } finally {
                     // Forcefully clear session data from browser storage regardless of network error
                     if (typeof window !== 'undefined') {
-                        Object.keys(localStorage).forEach(key => {
-                            if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
-                                localStorage.removeItem(key);
-                            }
-                        });
+                        localStorage.clear();
+                        sessionStorage.clear();
                     }
                     setUserAuth(null);
                     setProfile(null);
