@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { TerminalSquare } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
 
-export default function Template({ children }: { children: React.ReactNode }) {
+function TemplateInner({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const isHome = pathname === "/";
@@ -57,5 +57,13 @@ export default function Template({ children }: { children: React.ReactNode }) {
                 {children}
             </div>
         </>
+    );
+}
+
+export default function Template({ children }: { children: React.ReactNode }) {
+    return (
+        <Suspense fallback={null}>
+            <TemplateInner>{children}</TemplateInner>
+        </Suspense>
     );
 }

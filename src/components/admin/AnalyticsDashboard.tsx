@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Filter, GitCommit, Target, Trophy, Clock, Skull, Lock } from "lucide-react";
+import { Filter, GitCommit, Target, Trophy, Clock, Skull, Lock, Flag } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -53,7 +53,8 @@ export function AnalyticsDashboard() {
             if (allSubs) {
                 allSubs.forEach(sub => {
                     const cid = sub.challenge_id;
-                    const cTitle = sub.challenges?.title || "Unknown Target";
+                    const chalData: any = sub.challenges;
+                    const cTitle = (Array.isArray(chalData) ? chalData[0]?.title : chalData?.title) || "Unknown Target";
                     if (!missionStats[cid]) missionStats[cid] = { title: cTitle, attempts: 0, solved: 0 };
                     missionStats[cid].attempts += 1;
                     if (sub.is_correct) missionStats[cid].solved += 1;
@@ -83,8 +84,10 @@ export function AnalyticsDashboard() {
                 if (timeframeSubs) {
                     timeframeSubs.forEach(sub => {
                         const uid = sub.user_id;
-                        const uname = sub.profiles?.username || "Unknown";
-                        const pts = sub.challenges?.points || 0;
+                        const profData: any = sub.profiles;
+                        const chalData: any = sub.challenges;
+                        const uname = (Array.isArray(profData) ? profData[0]?.username : profData?.username) || "Unknown";
+                        const pts = (Array.isArray(chalData) ? chalData[0]?.points : chalData?.points) || 0;
                         if (!playerStats[uid]) playerStats[uid] = { username: uname, score: 0 };
                         playerStats[uid].score += pts;
                     });
@@ -122,8 +125,8 @@ export function AnalyticsDashboard() {
                                 size="sm"
                                 onClick={() => setTimeframe(t)}
                                 className={`text-xs uppercase font-bold tracking-widest transition-all ${timeframe === t
-                                        ? "bg-primary text-white border-primary shadow-[0_0_15px_rgba(239,68,68,0.5)]"
-                                        : "bg-transparent text-muted-foreground border-white/10 hover:text-white"
+                                    ? "bg-primary text-white border-primary shadow-[0_0_15px_rgba(239,68,68,0.5)]"
+                                    : "bg-transparent text-muted-foreground border-white/10 hover:text-white"
                                     }`}
                             >
                                 {t === 'all' ? 'All Time' : `This ${t}`}
@@ -260,7 +263,9 @@ export function AnalyticsDashboard() {
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex justify-between items-start">
                                                     <p className="text-sm font-bold text-slate-200 truncate pr-2">
-                                                        <span className="text-primary mr-1">[{log.profiles?.username || "GUEST"}]</span>
+                                                        <span className="text-primary mr-1">
+                                                            [{(Array.isArray(log.profiles) ? (log.profiles[0] as any)?.username : (log.profiles as any)?.username) || "GUEST"}]
+                                                        </span>
                                                         {log.is_correct ? "captured" : "failed to crack"}
                                                     </p>
                                                     <span className="text-[10px] font-mono whitespace-nowrap text-muted-foreground group-hover:text-primary/70 transition-colors">
@@ -268,7 +273,7 @@ export function AnalyticsDashboard() {
                                                     </span>
                                                 </div>
                                                 <p className="text-xs text-muted-foreground opacity-80 truncate">
-                                                    Target: {log.challenges?.title || "Unknown"}
+                                                    Target: {(Array.isArray(log.challenges) ? (log.challenges[0] as any)?.title : (log.challenges as any)?.title) || "Unknown"}
                                                 </p>
                                             </div>
                                         </div>
