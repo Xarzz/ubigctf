@@ -65,7 +65,7 @@ export default function RegisterPage() {
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: `${window.location.origin}/challenges`
+                redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/challenges`
             }
         });
 
