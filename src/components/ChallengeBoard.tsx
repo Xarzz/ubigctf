@@ -259,7 +259,7 @@ export function ChallengeBoard() {
                             {filteredAndSortedChallenges.map(challenge => (
                                 <Card
                                     key={challenge.id}
-                                    className={`group relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_-5px_var(--primary)] ${challenge.solved ? "border-primary/50 bg-card/50" : "border-border/50 bg-card/80 backdrop-blur-sm"
+                                    className={`group relative overflow-hidden flex flex-col gap-2 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_-5px_var(--primary)] ${challenge.solved ? "border-primary/50 bg-card/50" : "border-border/50 bg-card/80 backdrop-blur-sm"
                                         }`}
                                 >
                                     {/* Solved Overlay */}
@@ -341,7 +341,7 @@ export function ChallengeBoard() {
                             </DialogHeader>
 
                             <div className="flex-1 overflow-y-auto p-6 space-y-6 focus:outline-none scroll-smooth">
-                                <div className="bg-secondary/50 p-4 rounded-md border border-border/50 text-muted-foreground/90 font-mono text-sm leading-relaxed whitespace-pre-wrap">
+                                <div className="bg-secondary/50 p-4 rounded-md border border-border/50 text-muted-foreground/90 font-mono text-sm leading-relaxed whitespace-pre-wrap break-words break-all">
                                     {selectedChallenge.description}
                                 </div>
 

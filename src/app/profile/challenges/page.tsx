@@ -221,7 +221,8 @@ export default function MyChallengesPage() {
                 hints: filteredHints,
                 file_url: uploadedFileUrl || null,
                 created_by: user?.id,
-                author: profile?.username || user?.email?.split('@')[0] || 'Unknown Hacker'
+                author: profile?.username || user?.email?.split('@')[0] || 'Unknown Hacker',
+                is_active: false
             }]);
 
             if (error) throw error;
@@ -415,19 +416,18 @@ export default function MyChallengesPage() {
                                 </div>
                             ) : (
                                 filtered.map((c) => (
-                                    <Card key={c.id} className="group relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_-5px_var(--primary)] border-border/50 bg-card/80 backdrop-blur-sm">
+                                    <Card key={c.id} className="group relative overflow-hidden flex flex-col gap-2 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_-5px_var(--primary)] border-border/50 bg-card/80 backdrop-blur-sm">
                                         <div className="absolute top-0 right-0 p-3 z-10">
-                                            <button
-                                                onClick={() => toggleActive(c.id, c.is_active)}
-                                                className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold transition-all hover:scale-105 shadow-md ${c.is_active
+                                            <div
+                                                className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold shadow-md ${c.is_active
                                                     ? 'bg-green-500/20 text-green-400 border border-green-500/30 backdrop-blur-md'
-                                                    : 'bg-red-500/20 text-red-500 border border-red-500/30 backdrop-blur-md'
+                                                    : 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 backdrop-blur-md'
                                                     }`}
-                                                title={c.is_active ? "Toggle Offline" : "Toggle Active"}
+                                                title={c.is_active ? "Approved & Live" : "Pending Admin Review"}
                                             >
-                                                {c.is_active ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                                                {c.is_active ? "ACTIVE" : "OFFLINE"}
-                                            </button>
+                                                {c.is_active ? <CheckCircle2 className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
+                                                {c.is_active ? "LIVE" : "REVIEWING"}
+                                            </div>
                                         </div>
 
                                         <CardHeader className="pb-2 relative z-0 pt-8">
@@ -498,7 +498,7 @@ export default function MyChallengesPage() {
                                 </DialogHeader>
 
                                 <div className="flex-1 overflow-y-auto p-6 space-y-6 focus:outline-none scroll-smooth custom-scrollbar">
-                                    <div className="bg-secondary/50 p-4 rounded-md border border-border/50 text-muted-foreground/90 font-mono text-sm leading-relaxed whitespace-pre-wrap">
+                                    <div className="bg-secondary/50 p-4 rounded-md border border-border/50 text-muted-foreground/90 font-mono text-sm leading-relaxed whitespace-pre-wrap break-words break-all">
                                         {viewChallenge.description}
                                     </div>
 
