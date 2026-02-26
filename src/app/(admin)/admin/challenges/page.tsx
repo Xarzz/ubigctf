@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Plus, Edit2, Trash2, Search, Target, CheckCircle2, XCircle, UploadCloud, X } from "lucide-react";
+import { Plus, Edit2, Trash2, Search, Target, CheckCircle2, XCircle, UploadCloud, X, Terminal, Shield, Flag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -179,94 +179,118 @@ export default function AdminChallengesPage() {
                                 <Plus className="w-4 h-4" /> Deploy New
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="bg-black/95 border-border/50 text-slate-200 border-t-2 border-t-primary shadow-[0_0_50px_rgba(239,68,68,0.2)] max-w-2xl w-[90vw] h-[90vh] md:h-auto overflow-y-auto hidden-scrollbar">
-                            <DialogHeader>
+                        <DialogContent className="bg-black/95 border-border/50 text-slate-200 border-t-2 border-t-primary shadow-[0_0_50px_rgba(239,68,68,0.2)] max-w-2xl w-[95vw] lg:w-full max-h-[90vh] overflow-y-auto hidden-scrollbar flex flex-col p-6">
+                            <DialogHeader className="shrink-0 mb-4">
                                 <DialogTitle className="text-2xl font-black font-mono text-white flex items-center gap-2">
                                     <Target className="w-6 h-6 text-primary" /> NEW MISSION TARGET
                                 </DialogTitle>
+                                <p className="text-sm text-muted-foreground font-mono mt-1">Configure mission parameters. Scroll down for extra settings.</p>
                             </DialogHeader>
-                            <form onSubmit={handleAddSubmit} className="space-y-4 py-4">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Target Name</label>
-                                    <Input required placeholder="E.g. SQLi Vulnerability" className="bg-white/5 border-white/10" value={newChallenge.title} onChange={e => setNewChallenge({ ...newChallenge, title: e.target.value })} />
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                            <form onSubmit={handleAddSubmit} className="space-y-6 flex-1 pr-2">
+                                {/* Core Parameters */}
+                                <div className="space-y-4 p-5 rounded-xl bg-white/[0.02] border border-white/5">
+                                    <h3 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2 mb-2">
+                                        <Terminal className="w-4 h-4" /> Core Parameters
+                                    </h3>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Category</label>
-                                        <select required className="flex h-10 w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary appearance-none" value={newChallenge.category_id} onChange={e => setNewChallenge({ ...newChallenge, category_id: e.target.value })}>
-                                            <option value="" disabled className="bg-black text-white">Select a category...</option>
-                                            {categories.map(cat => (
-                                                <option key={cat.id} value={cat.id} className="bg-black text-white">{cat.name}</option>
-                                            ))}
-                                        </select>
+                                        <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Target Name</label>
+                                        <Input required placeholder="E.g. SQLi Vulnerability" className="bg-black/50 border-white/10" value={newChallenge.title} onChange={e => setNewChallenge({ ...newChallenge, title: e.target.value })} />
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Difficulty</label>
-                                        <select required className="flex h-10 w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary appearance-none" value={newChallenge.difficulty} onChange={e => setNewChallenge({ ...newChallenge, difficulty: e.target.value })}>
-                                            <option value="Easy" className="bg-black text-green-400">Easy</option>
-                                            <option value="Medium" className="bg-black text-yellow-500">Medium</option>
-                                            <option value="Hard" className="bg-black text-red-500">Hard</option>
-                                            <option value="Insane" className="bg-black text-purple-500">Insane</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Briefing (Description)</label>
-                                    <textarea required rows={4} placeholder="Describe the mission details, hints, or instructions here..." className="flex w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary font-mono" value={newChallenge.description} onChange={e => setNewChallenge({ ...newChallenge, description: e.target.value })} />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Hints (Optional)</label>
-                                    {newChallenge.hints.map((hint, index) => (
-                                        <div key={index} className="flex items-center gap-2 mb-2">
-                                            <Input
-                                                placeholder={`Hint ${index + 1}...`}
-                                                className="bg-white/5 border-white/10"
-                                                value={hint}
-                                                onChange={e => {
-                                                    const newHints = [...newChallenge.hints];
-                                                    newHints[index] = e.target.value;
-                                                    setNewChallenge({ ...newChallenge, hints: newHints });
-                                                }}
-                                            />
-                                            {index > 0 && (
-                                                <Button type="button" variant="ghost" size="icon" className="hover:text-red-500 flex-shrink-0" onClick={() => {
-                                                    setNewChallenge({ ...newChallenge, hints: newChallenge.hints.filter((_, i) => i !== index) });
-                                                }}>
-                                                    <X className="w-4 h-4" />
-                                                </Button>
-                                            )}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Category</label>
+                                            <select required className="flex h-10 w-full rounded-md border border-white/10 bg-black/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary appearance-none" value={newChallenge.category_id} onChange={e => setNewChallenge({ ...newChallenge, category_id: e.target.value })}>
+                                                <option value="" disabled className="bg-black text-slate-500">Select category...</option>
+                                                {categories.map(cat => (
+                                                    <option key={cat.id} value={cat.id} className="bg-black text-white">{cat.name}</option>
+                                                ))}
+                                            </select>
                                         </div>
-                                    ))}
-                                    <Button type="button" variant="outline" size="sm" className="border-white/10 text-xs mt-1" onClick={() => {
-                                        setNewChallenge({ ...newChallenge, hints: [...newChallenge.hints, ""] });
-                                    }}>
-                                        <Plus className="w-3 h-3 mr-1" /> Add Hint
-                                    </Button>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Reward Points</label>
-                                        <Input required type="number" min={0} className="bg-white/5 border-white/10 font-mono text-primary" value={newChallenge.points} onChange={e => setNewChallenge({ ...newChallenge, points: parseInt(e.target.value) || 0 })} />
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Difficulty</label>
+                                            <select required className="flex h-10 w-full rounded-md border border-white/10 bg-black/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary appearance-none" value={newChallenge.difficulty} onChange={e => setNewChallenge({ ...newChallenge, difficulty: e.target.value })}>
+                                                <option value="Easy" className="bg-black text-green-400">Easy</option>
+                                                <option value="Medium" className="bg-black text-yellow-500">Medium</option>
+                                                <option value="Hard" className="bg-black text-red-500">Hard</option>
+                                                <option value="Insane" className="bg-black text-purple-500">Insane</option>
+                                            </select>
+                                        </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Target URL / Host (Optional)</label>
-                                        <Input placeholder="http://target.com" className="bg-white/5 border-white/10 font-mono" value={newChallenge.target_url} onChange={e => setNewChallenge({ ...newChallenge, target_url: e.target.value })} />
+                                        <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Briefing (Description)</label>
+                                        <textarea required rows={4} placeholder="Describe the mission details, hints, or instructions here..." className="flex w-full rounded-md border border-white/10 bg-black/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary font-mono" value={newChallenge.description} onChange={e => setNewChallenge({ ...newChallenge, description: e.target.value })} />
                                     </div>
-                                </div>
-                                <div className="space-y-2 p-4 border border-white/10 rounded-xl bg-black/40">
-                                    <label className="text-xs font-mono font-bold uppercase text-muted-foreground flex items-center gap-2">
-                                        <UploadCloud className="w-4 h-4" /> Attach Mission File (PDF, ZIP, PCAP, etc.)
-                                    </label>
-                                    <Input type="file" className="bg-white/5 border-white/10 file:text-primary file:font-mono file:bg-white/5 file:border-0 cursor-pointer pt-2" onChange={e => setSelectedFile(e.target.files?.[0] || null)} />
-                                </div>
-                                <div className="space-y-2 pt-2">
-                                    <label className="text-xs font-mono font-bold uppercase text-primary">Capture Flag Secret</label>
-                                    <Input required placeholder="ubigctf{...}" className="bg-primary/5 border-primary/30 font-mono text-white" value={newChallenge.flag} onChange={e => setNewChallenge({ ...newChallenge, flag: e.target.value })} />
                                 </div>
 
-                                <DialogFooter className="pt-6 sm:justify-end gap-2">
-                                    <Button type="button" variant="outline" className="border-white/10" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
-                                    <Button type="submit" disabled={isSubmitting} className="font-bold bg-primary hover:bg-primary/80 shadow-[0_0_15px_rgba(239,68,68,0.5)]">
+                                {/* Mission Objectives */}
+                                <div className="space-y-4 p-5 rounded-xl bg-white/[0.02] border border-white/5">
+                                    <h3 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2 mb-2">
+                                        <Flag className="w-4 h-4" /> Mission Objectives
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Reward Points</label>
+                                            <Input required type="number" min={0} className="bg-black/50 border-white/10 font-mono text-green-400" value={newChallenge.points} onChange={e => setNewChallenge({ ...newChallenge, points: parseInt(e.target.value) || 0 })} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Target URL (Optional)</label>
+                                            <Input placeholder="http://target.com" className="bg-black/50 border-white/10 font-mono" value={newChallenge.target_url} onChange={e => setNewChallenge({ ...newChallenge, target_url: e.target.value })} />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2 bg-primary/5 p-4 rounded-lg border border-primary/20 mt-4">
+                                        <label className="text-xs font-mono font-bold uppercase text-primary">Capture Flag Secret</label>
+                                        <Input required placeholder="UbigCTF{...}" className="bg-black/50 border-primary/30 font-mono text-white focus-visible:ring-primary/50" value={newChallenge.flag} onChange={e => setNewChallenge({ ...newChallenge, flag: e.target.value })} />
+                                    </div>
+                                </div>
+
+                                {/* Support & Assets */}
+                                <div className="space-y-4 p-5 rounded-xl bg-white/[0.02] border border-white/5">
+                                    <h3 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2 mb-2">
+                                        <Shield className="w-4 h-4" /> Support & Assets
+                                    </h3>
+
+                                    <div className="space-y-3 pt-2">
+                                        <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Progressive Hints</label>
+                                        {newChallenge.hints.map((hint, index) => (
+                                            <div key={index} className="flex items-center gap-2">
+                                                <Input
+                                                    placeholder={`Hint level ${index + 1}...`}
+                                                    className="bg-black/50 border-white/10 text-yellow-400 font-mono text-sm"
+                                                    value={hint}
+                                                    onChange={e => {
+                                                        const newHints = [...newChallenge.hints];
+                                                        newHints[index] = e.target.value;
+                                                        setNewChallenge({ ...newChallenge, hints: newHints });
+                                                    }}
+                                                />
+                                                {index > 0 && (
+                                                    <Button type="button" variant="ghost" size="icon" className="hover:bg-red-500/20 hover:text-red-400 text-muted-foreground transition-all flex-shrink-0" onClick={() => {
+                                                        setNewChallenge({ ...newChallenge, hints: newChallenge.hints.filter((_, i) => i !== index) });
+                                                    }}>
+                                                        <X className="w-4 h-4" />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        ))}
+                                        <Button type="button" variant="outline" size="sm" className="border-white/10 hover:bg-white/5 text-xs text-muted-foreground" onClick={() => {
+                                            setNewChallenge({ ...newChallenge, hints: [...newChallenge.hints, ""] });
+                                        }}>
+                                            <Plus className="w-3 h-3 mr-1" /> Add Hint Tier
+                                        </Button>
+                                    </div>
+
+                                    <div className="space-y-2 border border-white/10 rounded-lg bg-black/40 p-3 mt-4">
+                                        <label className="text-xs font-mono font-bold uppercase text-muted-foreground flex items-center gap-2 cursor-pointer pb-2">
+                                            <UploadCloud className="w-4 h-4" /> Attach Mission File (PDF, ZIP, PCAP)
+                                        </label>
+                                        <Input type="file" className="bg-transparent border-0 file:text-primary file:font-mono file:bg-white/5 file:border-white/10 file:border file:rounded-md file:px-3 file:py-1 cursor-pointer" onChange={e => setSelectedFile(e.target.files?.[0] || null)} />
+                                    </div>
+                                </div>
+
+                                <DialogFooter className="pt-6 sm:justify-end gap-2 border-t border-white/5 mt-6 shrink-0">
+                                    <Button type="button" variant="ghost" className="hover:bg-white/5" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
+                                    <Button type="submit" disabled={isSubmitting} className="font-bold bg-primary hover:bg-primary/80 shadow-[0_0_15px_rgba(239,68,68,0.4)]">
                                         {isSubmitting ? "Deploying..." : "Launch Target"}
                                     </Button>
                                 </DialogFooter>
