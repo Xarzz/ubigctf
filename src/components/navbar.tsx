@@ -18,6 +18,7 @@ export function NavBar() {
     const pathname = usePathname();
     const { user, profile, isLoaded, signOut } = useUser();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isChallengesDropdownOpen, setIsChallengesDropdownOpen] = useState(false);
 
     // Safely parse display name
     const displayName = profile?.username || user?.email?.split("@")[0] || "";
@@ -44,13 +45,33 @@ export function NavBar() {
                                 >
                                     Home
                                 </Link>
-                                <Link
-                                    href="/challenges"
-                                    className={`transition-colors hover:text-white ${pathname === "/challenges" ? "text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]" : "text-muted-foreground"
-                                        }`}
+                                <div
+                                    className="relative flex items-center h-16"
+                                    onMouseEnter={() => setIsChallengesDropdownOpen(true)}
+                                    onMouseLeave={() => setIsChallengesDropdownOpen(false)}
                                 >
-                                    Challenges
-                                </Link>
+                                    <DropdownMenu open={isChallengesDropdownOpen} onOpenChange={setIsChallengesDropdownOpen} modal={false}>
+                                        <DropdownMenuTrigger className={`focus:outline-none transition-colors hover:text-white ${pathname.startsWith("/challenges") || pathname === "/profile/challenges" ? "text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]" : "text-muted-foreground"}`}>
+                                            Challenges
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="center" className="w-52 bg-black/90 border-border/50 text-white backdrop-blur-xl shadow-[0_4px_30px_-5px_rgba(239,68,68,0.3)] mt-2">
+                                            <DropdownMenuItem asChild className="hover:bg-primary/20 hover:text-white cursor-pointer transition-colors focus:bg-primary/20">
+                                                <Link href="/challenges" className="flex items-center w-full">
+                                                    <Terminal className="mr-2 h-4 w-4 text-primary" />
+                                                    <span>Challenge Board</span>
+                                                </Link>
+                                            </DropdownMenuItem>
+                                            {user && (
+                                                <DropdownMenuItem asChild className="hover:bg-primary/20 hover:text-white cursor-pointer transition-colors focus:bg-primary/20">
+                                                    <Link href="/profile/challenges" className="flex items-center w-full">
+                                                        <Flag className="mr-2 h-4 w-4 text-primary" />
+                                                        <span>My Challenges</span>
+                                                    </Link>
+                                                </DropdownMenuItem>
+                                            )}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
                                 <Link
                                     href="/scoreboard"
                                     className={`transition-colors hover:text-white ${pathname === "/scoreboard" ? "text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]" : "text-muted-foreground"
@@ -109,12 +130,6 @@ export function NavBar() {
                                                     <Link href="/profile" className="flex items-center w-full">
                                                         <User className="mr-2 h-4 w-4 text-primary" />
                                                         <span>My Profile</span>
-                                                    </Link>
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem asChild className="hover:bg-primary/20 hover:text-white cursor-pointer transition-colors focus:bg-primary/20">
-                                                    <Link href="/profile/challenges" className="flex items-center w-full">
-                                                        <Flag className="mr-2 h-4 w-4 text-primary" />
-                                                        <span>My Challenges</span>
                                                     </Link>
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem
