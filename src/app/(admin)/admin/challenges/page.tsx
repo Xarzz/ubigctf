@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Plus, Edit2, Trash2, Search, Target, CheckCircle2, XCircle, UploadCloud, X, Terminal, Shield, Flag } from "lucide-react";
+import { Plus, Edit2, Trash2, Search, Target, CheckCircle2, XCircle, UploadCloud, X, Terminal, Shield, Flag, TerminalSquare, ExternalLink, Download, HelpCircle, Lock as LockIcon, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -39,6 +39,79 @@ export default function AdminChallengesPage() {
     });
 
     const [searchQuery, setSearchQuery] = useState("");
+
+    // View State
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    const [viewChallenge, setViewChallenge] = useState<any>(null);
+    const [showHints, setShowHints] = useState<number>(0);
+
+    // Edit Challenge State
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isEditSubmitting, setIsEditSubmitting] = useState(false);
+    const [editChallenge, setEditChallenge] = useState({
+        id: "",
+        title: "",
+        description: "",
+        category_id: "",
+        points: 50,
+        difficulty: "Easy",
+        flag: "",
+        target_url: "",
+        hints: [""],
+    });
+
+    const openEditModal = (c: any) => {
+        let catId = (c.categories as any)?.id;
+        if (!catId) {
+            const foundCat = categories.find((cat: any) => cat.name === (c.categories as any)?.name);
+            catId = foundCat ? foundCat.id : "";
+        }
+        setEditChallenge({
+            id: c.id,
+            title: c.title,
+            description: c.description,
+            category_id: catId,
+            points: c.points,
+            difficulty: c.difficulty,
+            flag: c.flag,
+            target_url: c.target_url || "",
+            hints: Array.isArray(c.hints) && c.hints.length > 0 ? c.hints : [""],
+        });
+        setIsEditModalOpen(true);
+    };
+
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsEditSubmitting(true);
+        try {
+            const filteredHints = editChallenge.hints.filter(h => h.trim() !== "");
+            const { error } = await supabase.from('challenges').update({
+                title: editChallenge.title,
+                description: editChallenge.description,
+                category_id: editChallenge.category_id,
+                points: Number(editChallenge.points),
+                difficulty: editChallenge.difficulty,
+                flag: editChallenge.flag,
+                target_url: editChallenge.target_url,
+                hints: filteredHints,
+            }).eq('id', editChallenge.id);
+
+            if (error) throw error;
+            toast.success("Target updated successfully!");
+            setIsEditModalOpen(false);
+            mutateChallenges();
+        } catch (error: any) {
+            toast.error(error.message || "Failed to update mission target.");
+        } finally {
+            setIsEditSubmitting(false);
+        }
+    };
+
+    const openViewModal = (c: any) => {
+        setViewChallenge(c);
+        setShowHints(0);
+        setIsViewModalOpen(true);
+    };
 
     // Add Challenge State
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -219,8 +292,8 @@ export default function AdminChallengesPage() {
                                             </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Briefing (Description)</label>
-                                            <textarea required rows={4} placeholder="Describe the mission details, hints, or instructions here..." className="flex w-full rounded-md border border-white/10 bg-black/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary font-mono" value={newChallenge.description} onChange={e => setNewChallenge({ ...newChallenge, description: e.target.value })} />
+                                            <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Briefing (Description) - Max 1500 chars</label>
+                                            <textarea required rows={4} maxLength={1500} placeholder="Describe the mission details, hints, or instructions here..." className="flex w-full rounded-md border border-white/10 bg-black/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary font-mono" value={newChallenge.description} onChange={e => setNewChallenge({ ...newChallenge, description: e.target.value })} />
                                         </div>
                                     </div>
 
@@ -339,7 +412,7 @@ export default function AdminChallengesPage() {
                             ) : (
                                 filtered.map((c) => (
                                     <tr key={c.id} className="hover:bg-white/[0.02] transition-colors group">
-                                        <td className="px-6 py-4 font-bold text-white group-hover:text-primary transition-colors">
+                                        <td className="px-6 py-4 font-bold text-white group-hover:text-primary transition-colors cursor-pointer" onClick={() => openViewModal(c)}>
                                             {c.title}
                                         </td>
                                         <td className="px-6 py-4 text-slate-300">
@@ -369,8 +442,11 @@ export default function AdminChallengesPage() {
                                                 {c.is_active ? "ACTIVE" : "OFFLINE"}
                                             </button>
                                         </td>
-                                        <td className="px-6 py-4 text-right space-x-2">
-                                            <Button variant="outline" size="icon" className="h-8 w-8 bg-black/50 border-white/10 hover:border-primary/50 hover:bg-primary/20 hover:text-white transition-all">
+                                        <td className="px-6 py-4 text-right flex justify-end gap-2">
+                                            <Button variant="outline" size="icon" onClick={() => openViewModal(c)} className="h-8 w-8 bg-black/50 border-white/10 hover:border-blue-500 hover:bg-blue-500/20 hover:text-blue-400 transition-all">
+                                                <Eye className="w-3.5 h-3.5" />
+                                            </Button>
+                                            <Button variant="outline" size="icon" onClick={() => openEditModal(c)} className="h-8 w-8 bg-black/50 border-white/10 hover:border-blue-500 hover:bg-blue-500/20 hover:text-white transition-all">
                                                 <Edit2 className="w-3.5 h-3.5" />
                                             </Button>
                                             <Button variant="outline" size="icon" onClick={() => handleDelete(c.id)} className="h-8 w-8 bg-black/50 border-white/10 hover:border-red-500 hover:bg-red-500/20 hover:text-red-400 transition-all">
@@ -384,7 +460,214 @@ export default function AdminChallengesPage() {
                     </table>
                 )}
             </div>
-        </div>
+
+            {/* View Challenge Modal */}
+            <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+                <DialogContent className="sm:max-w-2xl w-[95vw] max-h-[90vh] flex flex-col p-0 overflow-hidden border-blue-500/20 bg-black/95 backdrop-blur-xl shadow-[0_0_40px_-10px_rgba(59,130,246,0.5)] sm:rounded-2xl">
+                    {viewChallenge && (
+                        <>
+                            <DialogHeader className="shrink-0 p-6 pb-4 border-b border-white/10 bg-black/40">
+                                <DialogTitle className="flex items-center text-2xl gap-2 font-mono uppercase tracking-wider text-white">
+                                    <TerminalSquare className="text-blue-400 w-6 h-6" />
+                                    {viewChallenge.title}
+                                </DialogTitle>
+                                <div className="flex gap-2 pt-2">
+                                    <Badge variant="outline" className={`${viewChallenge.difficulty === 'Easy' ? 'text-green-500' : viewChallenge.difficulty === 'Medium' ? 'text-yellow-500' : viewChallenge.difficulty === 'Hard' ? 'text-red-500' : 'text-purple-500'}`}>
+                                        {viewChallenge.difficulty}
+                                    </Badge>
+                                    <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/30 font-bold px-3 py-1">
+                                        {viewChallenge.points} pts
+                                    </Badge>
+                                    <Badge className="bg-zinc-800 text-zinc-300 border border-white/10 font-bold">
+                                        {(viewChallenge.categories as any)?.name || "Unknown"}
+                                    </Badge>
+                                </div>
+                            </DialogHeader>
+
+                            <div className="flex-1 overflow-y-auto p-6 space-y-6 focus:outline-none scroll-smooth custom-scrollbar">
+                                <div className="bg-secondary/50 p-4 rounded-md border border-border/50 text-muted-foreground/90 font-mono text-sm leading-relaxed whitespace-pre-wrap">
+                                    {viewChallenge.description}
+                                </div>
+
+                                {(viewChallenge.target_url || viewChallenge.file_url) && (
+                                    <div className="flex flex-wrap gap-2">
+                                        {viewChallenge.target_url && (
+                                            <Button variant="outline" className="border-blue-500/50 text-blue-400 hover:bg-blue-500/20 gap-2" onClick={() => window.open(viewChallenge.target_url, '_blank')}>
+                                                <ExternalLink className="w-4 h-4" /> Open Target
+                                            </Button>
+                                        )}
+                                        {viewChallenge.file_url && (
+                                            <Button variant="outline" className="border-blue-500/50 text-blue-400 hover:bg-blue-500/20 gap-2" onClick={() => window.open(viewChallenge.file_url, '_blank')}>
+                                                <Download className="w-4 h-4" /> Download Material
+                                            </Button>
+                                        )}
+                                    </div>
+                                )}
+
+                                {viewChallenge.hints && viewChallenge.hints.length > 0 && (
+                                    <div className="space-y-4 p-5 rounded-xl bg-white/[0.02] border border-white/5">
+                                        <h3 className="text-xs font-bold text-blue-400 uppercase tracking-widest flex items-center gap-2 mb-2">
+                                            <HelpCircle className="w-4 h-4" /> Intelligence Briefing
+                                        </h3>
+                                        {viewChallenge.hints.map((hint: string, hIdx: number) => {
+                                            const isUnlocked = showHints > hIdx;
+                                            return (
+                                                <div key={hIdx} className="relative">
+                                                    {!isUnlocked ? (
+                                                        <Button variant="secondary" className="w-full justify-start text-muted-foreground border border-dashed border-white/20 hover:bg-white/10" onClick={() => setShowHints(hIdx + 1)}>
+                                                            <LockIcon className="w-4 h-4 mr-2" /> Reveal Hint {hIdx + 1}
+                                                        </Button>
+                                                    ) : (
+                                                        <div className="p-3 bg-black/50 border border-yellow-500/30 text-yellow-500/80 font-mono text-sm rounded-md shadow-[inset_0_0_10px_rgba(234,179,8,0.05)]">
+                                                            <span className="font-bold text-yellow-500 mr-2">Hint {hIdx + 1}:</span> {hint}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                <div className="space-y-2 bg-primary/5 p-4 rounded-lg border border-primary/20">
+                                    <label className="text-xs font-mono font-bold uppercase text-primary flex items-center gap-2">
+                                        <Flag className="w-3.5 h-3.5" /> Target Flag Payload
+                                    </label>
+                                    <div className="font-mono text-white tracking-widest bg-black/50 p-2 rounded border border-white/5 break-all">
+                                        {viewChallenge.flag}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <DialogFooter className="shrink-0 p-6 pt-4 sm:justify-end border-t border-white/10 bg-black/40">
+                                <Button type="button" variant="outline" className="hover:bg-white/5" onClick={() => setIsViewModalOpen(false)}>
+                                    Close Preview
+                                </Button>
+                            </DialogFooter>
+                        </>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit Challenge Modal */}
+            <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+                <DialogContent className="bg-black/95 border-border/50 text-slate-200 border-t-2 border-t-blue-500 shadow-[0_0_50px_rgba(59,130,246,0.2)] max-w-2xl w-[95vw] lg:w-full max-h-[90vh] flex flex-col p-0 overflow-hidden sm:rounded-2xl">
+                    <form onSubmit={handleEditSubmit} className="flex flex-col h-full max-h-[90vh] overflow-hidden">
+                        <DialogHeader className="shrink-0 p-6 pb-4 border-b border-white/10 bg-black/40">
+                            <DialogTitle className="text-2xl font-black font-mono text-white flex items-center gap-2">
+                                <Edit2 className="w-6 h-6 text-blue-500" /> MODIFY TARGET
+                            </DialogTitle>
+                            <p className="text-sm text-muted-foreground font-mono mt-1">Update existing mission parameters.</p>
+                        </DialogHeader>
+
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6 focus:outline-none scroll-smooth">
+                            {/* Core Parameters */}
+                            <div className="space-y-4 p-5 rounded-xl bg-white/[0.02] border border-white/5">
+                                <h3 className="text-xs font-bold text-blue-400 uppercase tracking-widest flex items-center gap-2 mb-2">
+                                    <Terminal className="w-4 h-4" /> Core Parameters
+                                </h3>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Target Name</label>
+                                    <Input required placeholder="E.g. SQLi Vulnerability" className="bg-black/50 border-white/10" value={editChallenge.title} onChange={e => setEditChallenge({ ...editChallenge, title: e.target.value })} />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Category</label>
+                                        <select required className="flex h-10 w-full rounded-md border border-white/10 bg-black/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none" value={editChallenge.category_id} onChange={e => setEditChallenge({ ...editChallenge, category_id: e.target.value })}>
+                                            <option value="" disabled className="bg-black text-slate-500">Select category...</option>
+                                            {categories.map(cat => (
+                                                <option key={cat.id} value={cat.id} className="bg-black text-white">{cat.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Difficulty</label>
+                                        <select required className="flex h-10 w-full rounded-md border border-white/10 bg-black/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none" value={editChallenge.difficulty} onChange={e => setEditChallenge({ ...editChallenge, difficulty: e.target.value })}>
+                                            <option value="Easy" className="bg-black text-green-400">Easy</option>
+                                            <option value="Medium" className="bg-black text-yellow-500">Medium</option>
+                                            <option value="Hard" className="bg-black text-red-500">Hard</option>
+                                            <option value="Insane" className="bg-black text-purple-500">Insane</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Briefing (Description) - Max 1500 chars</label>
+                                    <textarea required rows={4} maxLength={1500} placeholder="Describe the mission details, hints, or instructions here..." className="flex w-full rounded-md border border-white/10 bg-black/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono" value={editChallenge.description} onChange={e => setEditChallenge({ ...editChallenge, description: e.target.value })} />
+                                </div>
+                            </div>
+
+                            {/* Mission Objectives */}
+                            <div className="space-y-4 p-5 rounded-xl bg-white/[0.02] border border-white/5">
+                                <h3 className="text-xs font-bold text-blue-400 uppercase tracking-widest flex items-center gap-2 mb-2">
+                                    <Flag className="w-4 h-4" /> Mission Objectives
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Reward Points</label>
+                                        <Input required type="number" min={0} className="bg-black/50 border-white/10 font-mono text-green-400" value={editChallenge.points} onChange={e => setEditChallenge({ ...editChallenge, points: parseInt(e.target.value) || 0 })} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Target URL (Optional)</label>
+                                        <Input placeholder="http://target.com" className="bg-black/50 border-white/10 font-mono" value={editChallenge.target_url} onChange={e => setEditChallenge({ ...editChallenge, target_url: e.target.value })} />
+                                    </div>
+                                </div>
+                                <div className="space-y-2 bg-blue-500/5 p-4 rounded-lg border border-blue-500/20 mt-4">
+                                    <label className="text-xs font-mono font-bold uppercase text-blue-400">Capture Flag Secret</label>
+                                    <Input required placeholder="UbigCTF{...}" className="bg-black/50 border-blue-500/30 font-mono text-white focus-visible:ring-blue-500/50" value={editChallenge.flag} onChange={e => setEditChallenge({ ...editChallenge, flag: e.target.value })} />
+                                </div>
+                            </div>
+
+                            {/* Support & Assets */}
+                            <div className="space-y-4 p-5 rounded-xl bg-white/[0.02] border border-white/5">
+                                <h3 className="text-xs font-bold text-blue-400 uppercase tracking-widest flex items-center gap-2 mb-2">
+                                    <Shield className="w-4 h-4" /> Support & Assets
+                                </h3>
+
+                                <div className="space-y-3 pt-2">
+                                    <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Progressive Hints</label>
+                                    {editChallenge.hints.map((hint, index) => (
+                                        <div key={index} className="flex items-center gap-2">
+                                            <Input
+                                                placeholder={`Hint level ${index + 1}...`}
+                                                className="bg-black/50 border-white/10 text-yellow-400 font-mono text-sm"
+                                                value={hint}
+                                                onChange={e => {
+                                                    const newHints = [...editChallenge.hints];
+                                                    newHints[index] = e.target.value;
+                                                    setEditChallenge({ ...editChallenge, hints: newHints });
+                                                }}
+                                            />
+                                            {index > 0 && (
+                                                <Button type="button" variant="ghost" size="icon" className="hover:bg-red-500/20 hover:text-red-400 text-muted-foreground transition-all flex-shrink-0" onClick={() => {
+                                                    setEditChallenge({ ...editChallenge, hints: editChallenge.hints.filter((_, i) => i !== index) });
+                                                }}>
+                                                    <X className="w-4 h-4" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <Button type="button" variant="outline" size="sm" className="border-white/10 hover:bg-white/5 text-xs text-muted-foreground" onClick={() => {
+                                        setEditChallenge({ ...editChallenge, hints: [...editChallenge.hints, ""] });
+                                    }}>
+                                        <Plus className="w-3 h-3 mr-1" /> Add Hint Tier
+                                    </Button>
+                                </div>
+                                <div className="mt-4 p-3 border border-white/10 rounded-lg bg-black/40 text-xs font-mono text-muted-foreground">
+                                    <UploadCloud className="w-4 h-4 inline mr-2" />
+                                    File attachments must be re-uploaded or modified via database directly for now if needed.
+                                </div>
+                            </div>
+                        </div>
+
+                        <DialogFooter className="p-6 pt-4 sm:justify-end gap-2 border-t border-white/10 bg-black/40 shrink-0">
+                            <Button type="button" variant="ghost" className="hover:bg-white/5" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
+                            <Button type="submit" disabled={isEditSubmitting} className="font-bold bg-blue-600 hover:bg-blue-500 shadow-[0_0_15px_rgba(37,99,235,0.4)]">
+                                {isEditSubmitting ? "Updating..." : "Save Changes"}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+        </div >
     );
 }
 
