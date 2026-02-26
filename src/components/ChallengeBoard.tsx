@@ -259,7 +259,7 @@ export function ChallengeBoard() {
                             {filteredAndSortedChallenges.map(challenge => (
                                 <Card
                                     key={challenge.id}
-                                    className={`group relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_-5px_var(--primary)] ${challenge.solved ? "border-primary/50 bg-card/50" : "border-border/50 bg-card/80 backdrop-blur-sm"
+                                    className={`group relative overflow-hidden transition-all duration-300 gap-2 p-1 hover:-translate-y-1 hover:shadow-[0_0_30px_-5px_var(--primary)] ${challenge.solved ? "border-primary/50 bg-card/50" : "border-border/50 bg-card/80 backdrop-blur-sm"
                                         }`}
                                 >
                                     {/* Solved Overlay */}
@@ -280,8 +280,8 @@ export function ChallengeBoard() {
                                             </Badge>
                                         </div>
                                         <CardTitle className="text-xl group-hover:text-primary transition-colors">{challenge.title}</CardTitle>
-                                        <p className="text-[10px] font-mono text-muted-foreground/60 mt-0.5">
-                                            Created by <span className="text-primary/70">@{challenge.author}</span>
+                                        <p className="text-sm font-mono text-muted-foreground mt-1">
+                                            Created by <span className="text-primary/90 font-bold tracking-wide">@{challenge.author}</span>
                                         </p>
                                     </CardHeader>
 

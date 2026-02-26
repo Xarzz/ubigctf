@@ -414,7 +414,7 @@ export default function MyChallengesPage() {
                             </div>
                         ) : (
                             filtered.map((c) => (
-                                <Card key={c.id} className="group relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_-5px_var(--primary)] border-border/50 bg-card/80 backdrop-blur-sm">
+                                <Card key={c.id} className="group relative overflow-hidden transition-all duration-300 gap-2 p-1 hover:-translate-y-1 hover:shadow-[0_0_30px_-5px_var(--primary)] border-border/50 bg-card/80 backdrop-blur-sm">
                                     <div className="absolute top-0 right-0 p-3 z-10">
                                         <button
                                             onClick={() => toggleActive(c.id, c.is_active)}
@@ -444,8 +444,8 @@ export default function MyChallengesPage() {
                                             </Badge>
                                         </div>
                                         <CardTitle className="text-xl group-hover:text-primary transition-colors cursor-pointer" onClick={() => openViewModal(c)}>{c.title}</CardTitle>
-                                        <p className="text-[10px] font-mono text-muted-foreground/60 mt-0.5">
-                                            Category: <span className="text-primary/70">{(c.categories as any)?.name || "Unknown"}</span>
+                                        <p className="text-sm font-mono text-muted-foreground mt-1">
+                                            Category: <span className="text-primary/90 font-bold tracking-wide">{(c.categories as any)?.name || "Unknown"}</span>
                                         </p>
                                     </CardHeader>
 
