@@ -318,10 +318,10 @@ export function ChallengeBoard() {
 
             {/* Challenge Dialog */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="sm:max-w-md border-primary/20 bg-black/95 backdrop-blur-xl shadow-[0_0_40px_-10px_rgba(239,68,68,0.5)]">
+                <DialogContent className="sm:max-w-2xl w-[95vw] max-h-[90vh] flex flex-col p-0 overflow-hidden border-primary/20 bg-black/95 backdrop-blur-xl shadow-[0_0_40px_-10px_rgba(239,68,68,0.5)] sm:rounded-2xl">
                     {selectedChallenge && (
                         <>
-                            <DialogHeader>
+                            <DialogHeader className="shrink-0 p-6 pb-4 border-b border-white/10 bg-black/40">
                                 <DialogTitle className="flex items-center text-2xl gap-2 font-mono uppercase tracking-wider text-white">
                                     <TerminalSquare className="text-primary w-6 h-6" />
                                     {selectedChallenge.title}
@@ -336,7 +336,7 @@ export function ChallengeBoard() {
                                 </div>
                             </DialogHeader>
 
-                            <div className="py-6 space-y-6">
+                            <div className="flex-1 overflow-y-auto p-6 space-y-6 focus:outline-none scroll-smooth">
                                 <div className="bg-secondary/50 p-4 rounded-md border border-border/50 text-muted-foreground/90 font-mono text-sm leading-relaxed whitespace-pre-wrap">
                                     {selectedChallenge.description}
                                 </div>
@@ -357,14 +357,17 @@ export function ChallengeBoard() {
                                 )}
 
                                 {selectedChallenge.hints && selectedChallenge.hints.length > 0 && (
-                                    <div className="space-y-2">
+                                    <div className="space-y-4 p-5 rounded-xl bg-white/[0.02] border border-white/5">
+                                        <h3 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2 mb-2">
+                                            <HelpCircle className="w-4 h-4" /> Intelligence Briefing
+                                        </h3>
                                         {selectedChallenge.hints.map((hint: string, hIdx: number) => {
                                             const isUnlocked = showHints > hIdx;
                                             return (
                                                 <div key={hIdx} className="relative">
                                                     {!isUnlocked ? (
-                                                        <Button variant="secondary" className="w-full justify-start text-muted-foreground border border-dashed border-white/20" onClick={() => setShowHints(hIdx + 1)}>
-                                                            <HelpCircle className="w-4 h-4 mr-2" /> Unlock Hint {hIdx + 1}
+                                                        <Button variant="secondary" className="w-full justify-start text-muted-foreground border border-dashed border-white/20 hover:bg-white/10" onClick={() => setShowHints(hIdx + 1)}>
+                                                            <Lock className="w-4 h-4 mr-2" /> Unlock Hint {hIdx + 1}
                                                         </Button>
                                                     ) : (
                                                         <div className="p-3 bg-black/50 border border-yellow-500/30 text-yellow-500/80 font-mono text-sm rounded-md shadow-[inset_0_0_10px_rgba(234,179,8,0.05)]">
@@ -377,10 +380,10 @@ export function ChallengeBoard() {
                                     </div>
                                 )}
 
-                                <div className="space-y-3">
+                                <div className="space-y-3 p-5 rounded-xl bg-white/[0.02] border border-white/5">
                                     <label htmlFor="flag" className="text-sm font-semibold flex items-center text-gray-300">
                                         <Flag className="w-4 h-4 mr-2 text-primary" />
-                                        Submit Flag
+                                        Submit Flag Payload
                                     </label>
                                     <Input
                                         id="flag"
@@ -393,12 +396,12 @@ export function ChallengeBoard() {
                                 </div>
                             </div>
 
-                            <DialogFooter className="sm:justify-between border-t border-border/40 pt-4">
+                            <DialogFooter className="shrink-0 p-6 pt-4 sm:justify-between border-t border-white/10 bg-black/40">
                                 <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="hover:bg-red-500/10 hover:text-red-400">
-                                    Close
+                                    Abort Mission
                                 </Button>
-                                <Button type="button" disabled={isSubmittingFlag || selectedChallenge.solved} onClick={handleSubmitFlag} className="bg-primary text-white hover:bg-primary/90 shadow-[0_0_15px_rgba(239,68,68,0.4)]">
-                                    {isSubmittingFlag ? "Verifying..." : selectedChallenge.solved ? "Already Captured" : "Submit"}
+                                <Button type="button" disabled={isSubmittingFlag || selectedChallenge.solved} onClick={handleSubmitFlag} className="bg-primary text-white hover:bg-primary/90 shadow-[0_0_15px_rgba(239,68,68,0.4)] font-bold">
+                                    {isSubmittingFlag ? "Transmitting..." : selectedChallenge.solved ? "Target Neutralized" : "Execute Target"}
                                 </Button>
                             </DialogFooter>
                         </>
