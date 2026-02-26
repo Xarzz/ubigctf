@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Terminal, UserCircle, User, LogIn, UserPlus, Phone, LogOut, Flag } from "lucide-react";
+import { Terminal, UserCircle, User, LogIn, UserPlus, Phone, LogOut, Flag, ChevronDown } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { useState } from "react";
 import {
@@ -50,11 +50,17 @@ export function NavBar() {
                                     onMouseEnter={() => setIsChallengesDropdownOpen(true)}
                                     onMouseLeave={() => setIsChallengesDropdownOpen(false)}
                                 >
+                                    <Link
+                                        href="/challenges"
+                                        className={`transition-colors hover:text-white flex items-center pr-1 ${pathname.startsWith("/challenges") || pathname === "/profile/challenges" ? "text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]" : "text-muted-foreground"}`}
+                                    >
+                                        Challenges
+                                    </Link>
                                     <DropdownMenu open={isChallengesDropdownOpen} onOpenChange={setIsChallengesDropdownOpen} modal={false}>
-                                        <DropdownMenuTrigger className={`focus:outline-none transition-colors hover:text-white ${pathname.startsWith("/challenges") || pathname === "/profile/challenges" ? "text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]" : "text-muted-foreground"}`}>
-                                            Challenges
+                                        <DropdownMenuTrigger className={`focus:outline-none transition-colors hover:text-white flex items-center py-2 ${pathname.startsWith("/challenges") || pathname === "/profile/challenges" ? "text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]" : "text-muted-foreground"}`}>
+                                            <ChevronDown className="w-4 h-4" />
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="center" className="w-52 bg-black/90 border-border/50 text-white backdrop-blur-xl shadow-[0_4px_30px_-5px_rgba(239,68,68,0.3)] mt-2">
+                                        <DropdownMenuContent align="end" className="w-52 bg-black/90 border-border/50 text-white backdrop-blur-xl shadow-[0_4px_30px_-5px_rgba(239,68,68,0.3)] mt-2">
                                             <DropdownMenuItem asChild className="hover:bg-primary/20 hover:text-white cursor-pointer transition-colors focus:bg-primary/20">
                                                 <Link href="/challenges" className="flex items-center w-full">
                                                     <Terminal className="mr-2 h-4 w-4 text-primary" />
