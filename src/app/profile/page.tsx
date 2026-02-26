@@ -71,7 +71,7 @@ export default function ProfilePage() {
     const fetchUserStats = async () => {
         if (!user) return null;
 
-        const [solvedResponse, recentResponse] = await Promise.all([
+        const [solvedResponse, recentResponse, rankResponse] = await Promise.all([
             // Total solved
             supabase.from('submissions')
                 .select('*', { count: 'exact', head: true })
@@ -91,11 +91,17 @@ export default function ProfilePage() {
                 .eq('user_id', user.id)
                 .eq('is_correct', true)
                 .order('created_at', { ascending: false })
-                .limit(5)
+                .limit(5),
+
+            // Get count of users with strictly greater score for ranking
+            supabase.from('profiles')
+                .select('*', { count: 'exact', head: true })
+                .gt('score', profile?.score || 0)
         ]);
 
         return {
             totalSolved: solvedResponse.count || 0,
+            rank: (rankResponse.count || 0) + 1,
             recent: (recentResponse.data || []).map((s: any) => ({
                 title: s.challenges?.title || "Unknown Target",
                 pts: s.challenges?.points || 0,
@@ -174,7 +180,7 @@ export default function ProfilePage() {
                             <User className="w-16 h-16 text-slate-500" />
                         </div>
                         <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-primary text-white text-[11px] font-extrabold uppercase tracking-wider px-4 py-1.5 rounded-full border-4 border-[#0a0a0c] shadow-lg shadow-primary/30 whitespace-nowrap">
-                            Rank #12
+                            Rank #{statsLoading ? "..." : userStats?.rank || "-"}
                         </div>
                     </div>
 
