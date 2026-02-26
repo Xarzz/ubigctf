@@ -259,7 +259,7 @@ export function ChallengeBoard() {
                             {filteredAndSortedChallenges.map(challenge => (
                                 <Card
                                     key={challenge.id}
-                                    className={`group relative overflow-hidden transition-all duration-300 gap-2 p-1 hover:-translate-y-1 hover:shadow-[0_0_30px_-5px_var(--primary)] ${challenge.solved ? "border-primary/50 bg-card/50" : "border-border/50 bg-card/80 backdrop-blur-sm"
+                                    className={`group relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_-5px_var(--primary)] ${challenge.solved ? "border-primary/50 bg-card/50" : "border-border/50 bg-card/80 backdrop-blur-sm"
                                         }`}
                                 >
                                     {/* Solved Overlay */}
