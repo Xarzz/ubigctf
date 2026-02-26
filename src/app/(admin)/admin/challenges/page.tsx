@@ -142,13 +142,23 @@ export default function AdminChallengesPage() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to completely destroy this challenge? This action is irreversible.")) return;
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [challengeToDelete, setChallengeToDelete] = useState<string | null>(null);
 
-        const { error } = await supabase.from('challenges').delete().eq('id', id);
+    const promptDelete = (id: string) => {
+        setChallengeToDelete(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!challengeToDelete) return;
+
+        const { error } = await supabase.from('challenges').delete().eq('id', challengeToDelete);
         if (!error) {
             toast.success("Target permanently deleted from system.");
             mutateChallenges();
+            setIsDeleteModalOpen(false);
+            setChallengeToDelete(null);
         } else {
             toast.error(error.message);
         }
@@ -443,13 +453,13 @@ export default function AdminChallengesPage() {
                                             </button>
                                         </td>
                                         <td className="px-6 py-4 text-right flex justify-end gap-2">
-                                            <Button variant="outline" size="icon" onClick={() => openViewModal(c)} className="h-8 w-8 bg-black/50 border-white/10 hover:border-blue-500 hover:bg-blue-500/20 hover:text-blue-400 transition-all">
+                                            <Button variant="outline" size="icon" onClick={() => openViewModal(c)} className="h-8 w-8 bg-black/50 border-white/10 hover:border-primary/50 hover:bg-primary/20 hover:text-primary transition-all">
                                                 <Eye className="w-3.5 h-3.5" />
                                             </Button>
-                                            <Button variant="outline" size="icon" onClick={() => openEditModal(c)} className="h-8 w-8 bg-black/50 border-white/10 hover:border-blue-500 hover:bg-blue-500/20 hover:text-white transition-all">
+                                            <Button variant="outline" size="icon" onClick={() => openEditModal(c)} className="h-8 w-8 bg-black/50 border-white/10 hover:border-primary/50 hover:bg-primary/20 hover:text-white transition-all">
                                                 <Edit2 className="w-3.5 h-3.5" />
                                             </Button>
-                                            <Button variant="outline" size="icon" onClick={() => handleDelete(c.id)} className="h-8 w-8 bg-black/50 border-white/10 hover:border-red-500 hover:bg-red-500/20 hover:text-red-400 transition-all">
+                                            <Button variant="outline" size="icon" onClick={() => promptDelete(c.id)} className="h-8 w-8 bg-black/50 border-white/10 hover:border-red-500 hover:bg-red-500/20 hover:text-red-400 transition-all">
                                                 <Trash2 className="w-3.5 h-3.5" />
                                             </Button>
                                         </td>
@@ -463,19 +473,19 @@ export default function AdminChallengesPage() {
 
             {/* View Challenge Modal */}
             <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-                <DialogContent className="sm:max-w-2xl w-[95vw] max-h-[90vh] flex flex-col p-0 overflow-hidden border-blue-500/20 bg-black/95 backdrop-blur-xl shadow-[0_0_40px_-10px_rgba(59,130,246,0.5)] sm:rounded-2xl">
+                <DialogContent className="sm:max-w-2xl w-[95vw] max-h-[90vh] flex flex-col p-0 overflow-hidden border-primary/20 bg-black/95 backdrop-blur-xl shadow-[0_0_40px_-10px_rgba(239,68,68,0.5)] sm:rounded-2xl">
                     {viewChallenge && (
                         <>
                             <DialogHeader className="shrink-0 p-6 pb-4 border-b border-white/10 bg-black/40">
                                 <DialogTitle className="flex items-center text-2xl gap-2 font-mono uppercase tracking-wider text-white">
-                                    <TerminalSquare className="text-blue-400 w-6 h-6" />
+                                    <TerminalSquare className="text-primary w-6 h-6" />
                                     {viewChallenge.title}
                                 </DialogTitle>
                                 <div className="flex gap-2 pt-2">
                                     <Badge variant="outline" className={`${viewChallenge.difficulty === 'Easy' ? 'text-green-500' : viewChallenge.difficulty === 'Medium' ? 'text-yellow-500' : viewChallenge.difficulty === 'Hard' ? 'text-red-500' : 'text-purple-500'}`}>
                                         {viewChallenge.difficulty}
                                     </Badge>
-                                    <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/30 font-bold px-3 py-1">
+                                    <Badge className="bg-primary/20 text-primary border border-primary/30 font-bold px-3 py-1">
                                         {viewChallenge.points} pts
                                     </Badge>
                                     <Badge className="bg-zinc-800 text-zinc-300 border border-white/10 font-bold">
@@ -492,7 +502,7 @@ export default function AdminChallengesPage() {
                                 {(viewChallenge.target_url || viewChallenge.file_url) && (
                                     <div className="flex flex-wrap gap-2">
                                         {viewChallenge.target_url && (
-                                            <Button variant="outline" className="border-blue-500/50 text-blue-400 hover:bg-blue-500/20 gap-2" onClick={() => window.open(viewChallenge.target_url, '_blank')}>
+                                            <Button variant="outline" className="border-primary/50 text-primary hover:bg-primary/20 gap-2" onClick={() => window.open(viewChallenge.target_url, '_blank')}>
                                                 <ExternalLink className="w-4 h-4" /> Open Target
                                             </Button>
                                         )}
@@ -506,7 +516,7 @@ export default function AdminChallengesPage() {
 
                                 {viewChallenge.hints && viewChallenge.hints.length > 0 && (
                                     <div className="space-y-4 p-5 rounded-xl bg-white/[0.02] border border-white/5">
-                                        <h3 className="text-xs font-bold text-blue-400 uppercase tracking-widest flex items-center gap-2 mb-2">
+                                        <h3 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2 mb-2">
                                             <HelpCircle className="w-4 h-4" /> Intelligence Briefing
                                         </h3>
                                         {viewChallenge.hints.map((hint: string, hIdx: number) => {
@@ -550,11 +560,11 @@ export default function AdminChallengesPage() {
 
             {/* Edit Challenge Modal */}
             <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-                <DialogContent className="bg-black/95 border-border/50 text-slate-200 border-t-2 border-t-blue-500 shadow-[0_0_50px_rgba(59,130,246,0.2)] max-w-2xl w-[95vw] lg:w-full max-h-[90vh] flex flex-col p-0 overflow-hidden sm:rounded-2xl">
+                <DialogContent className="bg-black/95 border-border/50 text-slate-200 border-t-2 border-t-primary shadow-[0_0_50px_rgba(239,68,68,0.2)] max-w-2xl w-[95vw] lg:w-full max-h-[90vh] flex flex-col p-0 overflow-hidden sm:rounded-2xl">
                     <form onSubmit={handleEditSubmit} className="flex flex-col h-full max-h-[90vh] overflow-hidden">
                         <DialogHeader className="shrink-0 p-6 pb-4 border-b border-white/10 bg-black/40">
                             <DialogTitle className="text-2xl font-black font-mono text-white flex items-center gap-2">
-                                <Edit2 className="w-6 h-6 text-blue-500" /> MODIFY TARGET
+                                <Edit2 className="w-6 h-6 text-primary" /> MODIFY TARGET
                             </DialogTitle>
                             <p className="text-sm text-muted-foreground font-mono mt-1">Update existing mission parameters.</p>
                         </DialogHeader>
@@ -562,7 +572,7 @@ export default function AdminChallengesPage() {
                         <div className="flex-1 overflow-y-auto p-6 space-y-6 focus:outline-none scroll-smooth">
                             {/* Core Parameters */}
                             <div className="space-y-4 p-5 rounded-xl bg-white/[0.02] border border-white/5">
-                                <h3 className="text-xs font-bold text-blue-400 uppercase tracking-widest flex items-center gap-2 mb-2">
+                                <h3 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2 mb-2">
                                     <Terminal className="w-4 h-4" /> Core Parameters
                                 </h3>
                                 <div className="space-y-2">
@@ -572,7 +582,7 @@ export default function AdminChallengesPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Category</label>
-                                        <select required className="flex h-10 w-full rounded-md border border-white/10 bg-black/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none" value={editChallenge.category_id} onChange={e => setEditChallenge({ ...editChallenge, category_id: e.target.value })}>
+                                        <select required className="flex h-10 w-full rounded-md border border-white/10 bg-black/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary appearance-none" value={editChallenge.category_id} onChange={e => setEditChallenge({ ...editChallenge, category_id: e.target.value })}>
                                             <option value="" disabled className="bg-black text-slate-500">Select category...</option>
                                             {categories.map(cat => (
                                                 <option key={cat.id} value={cat.id} className="bg-black text-white">{cat.name}</option>
@@ -581,7 +591,7 @@ export default function AdminChallengesPage() {
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Difficulty</label>
-                                        <select required className="flex h-10 w-full rounded-md border border-white/10 bg-black/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none" value={editChallenge.difficulty} onChange={e => setEditChallenge({ ...editChallenge, difficulty: e.target.value })}>
+                                        <select required className="flex h-10 w-full rounded-md border border-white/10 bg-black/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary appearance-none" value={editChallenge.difficulty} onChange={e => setEditChallenge({ ...editChallenge, difficulty: e.target.value })}>
                                             <option value="Easy" className="bg-black text-green-400">Easy</option>
                                             <option value="Medium" className="bg-black text-yellow-500">Medium</option>
                                             <option value="Hard" className="bg-black text-red-500">Hard</option>
@@ -591,13 +601,13 @@ export default function AdminChallengesPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Briefing (Description) - Max 1500 chars</label>
-                                    <textarea required rows={4} maxLength={1500} placeholder="Describe the mission details, hints, or instructions here..." className="flex w-full rounded-md border border-white/10 bg-black/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono" value={editChallenge.description} onChange={e => setEditChallenge({ ...editChallenge, description: e.target.value })} />
+                                    <textarea required rows={4} maxLength={1500} placeholder="Describe the mission details, hints, or instructions here..." className="flex w-full rounded-md border border-white/10 bg-black/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary font-mono" value={editChallenge.description} onChange={e => setEditChallenge({ ...editChallenge, description: e.target.value })} />
                                 </div>
                             </div>
 
                             {/* Mission Objectives */}
                             <div className="space-y-4 p-5 rounded-xl bg-white/[0.02] border border-white/5">
-                                <h3 className="text-xs font-bold text-blue-400 uppercase tracking-widest flex items-center gap-2 mb-2">
+                                <h3 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2 mb-2">
                                     <Flag className="w-4 h-4" /> Mission Objectives
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -610,15 +620,15 @@ export default function AdminChallengesPage() {
                                         <Input placeholder="http://target.com" className="bg-black/50 border-white/10 font-mono" value={editChallenge.target_url} onChange={e => setEditChallenge({ ...editChallenge, target_url: e.target.value })} />
                                     </div>
                                 </div>
-                                <div className="space-y-2 bg-blue-500/5 p-4 rounded-lg border border-blue-500/20 mt-4">
-                                    <label className="text-xs font-mono font-bold uppercase text-blue-400">Capture Flag Secret</label>
-                                    <Input required placeholder="UbigCTF{...}" className="bg-black/50 border-blue-500/30 font-mono text-white focus-visible:ring-blue-500/50" value={editChallenge.flag} onChange={e => setEditChallenge({ ...editChallenge, flag: e.target.value })} />
+                                <div className="space-y-2 bg-primary/5 p-4 rounded-lg border border-primary/20 mt-4">
+                                    <label className="text-xs font-mono font-bold uppercase text-primary">Capture Flag Secret</label>
+                                    <Input required placeholder="UbigCTF{...}" className="bg-black/50 border-primary/30 font-mono text-white focus-visible:ring-primary/50" value={editChallenge.flag} onChange={e => setEditChallenge({ ...editChallenge, flag: e.target.value })} />
                                 </div>
                             </div>
 
                             {/* Support & Assets */}
                             <div className="space-y-4 p-5 rounded-xl bg-white/[0.02] border border-white/5">
-                                <h3 className="text-xs font-bold text-blue-400 uppercase tracking-widest flex items-center gap-2 mb-2">
+                                <h3 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2 mb-2">
                                     <Shield className="w-4 h-4" /> Support & Assets
                                 </h3>
 
@@ -660,11 +670,31 @@ export default function AdminChallengesPage() {
 
                         <DialogFooter className="p-6 pt-4 sm:justify-end gap-2 border-t border-white/10 bg-black/40 shrink-0">
                             <Button type="button" variant="ghost" className="hover:bg-white/5" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
-                            <Button type="submit" disabled={isEditSubmitting} className="font-bold bg-blue-600 hover:bg-blue-500 shadow-[0_0_15px_rgba(37,99,235,0.4)]">
+                            <Button type="submit" disabled={isEditSubmitting} className="font-bold bg-primary hover:bg-primary/80 shadow-[0_0_15px_rgba(239,68,68,0.4)]">
                                 {isEditSubmitting ? "Updating..." : "Save Changes"}
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Modal */}
+            <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+                <DialogContent className="max-w-md bg-black/95 border-red-500/50 text-slate-200 shadow-[0_0_50px_rgba(239,68,68,0.4)] sm:rounded-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-black font-mono text-red-500 flex items-center gap-2">
+                            <Trash2 className="w-5 h-5" /> CONFIRM DELETION
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="py-2 text-slate-300 font-mono text-sm leading-relaxed">
+                        Are you sure you want to completely destroy this mission target? This action is irreversible and will wipe all associated data.
+                    </div>
+                    <DialogFooter className="sm:justify-end gap-2 border-t border-white/10 pt-4 mt-2">
+                        <Button type="button" variant="ghost" className="hover:bg-white/5" onClick={() => setIsDeleteModalOpen(false)}>Cancel</Button>
+                        <Button type="button" onClick={confirmDelete} className="font-bold bg-red-600 hover:bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)]">
+                            Yes, Destroy Target
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div >
