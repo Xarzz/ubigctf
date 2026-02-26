@@ -117,7 +117,7 @@ export default function LoginPage() {
                             type="submit"
                             className="w-full bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/25 h-12 rounded-xl font-bold tracking-wide transition-all mt-4 group"
                         >
-                            {loading ? "INITIALIZING..." : (
+                            {loading ? "LOADING..." : (
                                 <>
                                     ACCESS SYSTEM
                                     <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />

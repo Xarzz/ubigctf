@@ -163,7 +163,7 @@ export default function RegisterPage() {
                             type="submit"
                             className="w-full bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/25 h-12 rounded-xl font-bold tracking-wide transition-all mt-6 group"
                         >
-                            {loading ? "PROCESSING..." : (
+                            {loading ? "LOADING..." : (
                                 <>
                                     CREATE IDENTITY
                                     <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />

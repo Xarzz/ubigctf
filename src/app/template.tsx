@@ -46,7 +46,7 @@ function TemplateInner({ children }: { children: React.ReactNode }) {
                     <div className="mt-8 flex items-center gap-3">
                         <TerminalSquare className="w-5 h-5 text-primary animate-pulse" />
                         <span className="font-mono font-bold tracking-[0.3em] text-white uppercase text-sm drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]">
-                            Establishing Link
+                            Loading...
                         </span>
                     </div>
                 </div>
