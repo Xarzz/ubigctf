@@ -1,6 +1,6 @@
 "use client";
 
-import { User, Mail, Shield, Award, TerminalSquare, Flag, LogOut, CheckCircle2 } from "lucide-react";
+import { User, Mail, Shield, Award, TerminalSquare, Flag, LogOut, CheckCircle2, Monitor, Lock, FileSearch, Code } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useUser } from "@/hooks/useUser";
@@ -8,6 +8,25 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import useSWR from "swr";
+
+const getCategoryIcon = (category: string) => {
+    switch (category) {
+        case "Web Exploitation":
+            return Monitor;
+        case "Cryptography":
+            return Lock;
+        case "Binary":
+            return TerminalSquare;
+        case "Forensics":
+            return FileSearch;
+        case "Reverse Engineering":
+            return Code;
+        default:
+            return Shield;
+    }
+};
 
 export default function ProfilePage() {
     const { user, profile, updateProfile, signOut, isLoaded } = useUser();
@@ -47,6 +66,50 @@ export default function ProfilePage() {
         // Force a hard reload to clear all React state and SWR caches completely
         window.location.href = "/login";
     };
+
+    // Fast-fetch real dynamic data
+    const fetchUserStats = async () => {
+        if (!user) return null;
+
+        const [solvedResponse, recentResponse] = await Promise.all([
+            // Total solved
+            supabase.from('submissions')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', user.id)
+                .eq('is_correct', true),
+
+            // Recent achievements (Limit 5)
+            supabase.from('submissions')
+                .select(`
+                    created_at,
+                    challenges (
+                        title,
+                        points,
+                        categories (name)
+                    )
+                `)
+                .eq('user_id', user.id)
+                .eq('is_correct', true)
+                .order('created_at', { ascending: false })
+                .limit(5)
+        ]);
+
+        return {
+            totalSolved: solvedResponse.count || 0,
+            recent: (recentResponse.data || []).map((s: any) => ({
+                title: s.challenges?.title || "Unknown Target",
+                pts: s.challenges?.points || 0,
+                category: s.challenges?.categories?.name || "Uncategorized",
+                date: new Date(s.created_at).toLocaleDateString()
+            }))
+        };
+    };
+
+    const { data: userStats, isLoading: statsLoading } = useSWR(
+        isLoaded && user ? ['user_stats', user.id] : null,
+        fetchUserStats,
+        { refreshInterval: 60000 }
+    );
 
     if (!isLoaded || !user) {
         return (
@@ -144,7 +207,7 @@ export default function ProfilePage() {
                         <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 md:p-6 flex flex-col items-center justify-center min-w-[120px] shadow-lg">
                             <span className="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-[0.2em] mb-1">Solved</span>
                             <span className="text-4xl md:text-5xl font-black text-white font-mono tracking-tighter">
-                                0
+                                {statsLoading ? "..." : userStats?.totalSolved || 0}
                             </span>
                         </div>
                     </div>
@@ -162,26 +225,31 @@ export default function ProfilePage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="p-8 space-y-4">
-                            {[
-                                { title: "Inspect Element", category: "Web Exploitation", pts: 100, icon: TerminalSquare },
-                                { title: "Base64 Basic", category: "Cryptography", pts: 150, icon: Flag },
-                                { title: "Cookie Monster", category: "Web Exploitation", pts: 200, icon: Shield },
-                            ].map((item, idx) => (
-                                <div key={idx} className="flex items-center gap-4 bg-white/[0.03] hover:bg-white/[0.06] transition-colors p-4 rounded-2xl border border-white/5 group">
-                                    <div className="bg-primary/10 p-3 rounded-xl text-primary group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all shadow-[0_0_10px_rgba(239,68,68,0)] group-hover:shadow-[0_0_15px_rgba(239,68,68,0.5)]">
-                                        <item.icon className="w-5 h-5" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h4 className="font-bold text-white text-sm group-hover:text-primary transition-colors">{item.title}</h4>
-                                        <p className="text-xs text-slate-500 mt-0.5">{item.category}</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-mono font-bold">
-                                            +{item.pts}
-                                        </Badge>
-                                    </div>
+                            {userStats?.recent && userStats.recent.length > 0 ? (
+                                userStats.recent.map((item: any, idx: number) => {
+                                    const IconComponent = getCategoryIcon(item.category);
+                                    return (
+                                        <div key={idx} className="flex items-center gap-4 bg-white/[0.03] hover:bg-white/[0.06] transition-colors p-4 rounded-2xl border border-white/5 group">
+                                            <div className="bg-primary/10 p-3 rounded-xl text-primary group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all shadow-[0_0_10px_rgba(239,68,68,0)] group-hover:shadow-[0_0_15px_rgba(239,68,68,0.5)]">
+                                                <IconComponent className="w-5 h-5" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <h4 className="font-bold text-white text-sm group-hover:text-primary transition-colors">{item.title}</h4>
+                                                <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5">{item.category} • {item.date}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-mono font-bold">
+                                                    +{item.pts}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <div className="text-center py-6 text-muted-foreground font-mono text-sm border border-dashed border-white/5 bg-white/[0.01] rounded-2xl">
+                                    No breakthroughs recorded yet.<br />Time to hack some targets!
                                 </div>
-                            ))}
+                            )}
                         </CardContent>
                     </Card>
 
