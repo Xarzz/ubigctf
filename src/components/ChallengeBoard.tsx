@@ -53,7 +53,7 @@ export function ChallengeBoard() {
         // Fetch active challenges
         const { data: challengesData, error: cErr } = await supabase
             .from('challenges')
-            .select(`id, title, description, points, difficulty, flag, is_active, target_url, file_url, hints, created_at, categories (name)`)
+            .select(`id, title, description, points, difficulty, flag, is_active, target_url, file_url, hints, created_at, categories (name), author`)
             .eq('is_active', true)
             .order('created_at', { ascending: false });
 
@@ -85,6 +85,7 @@ export function ChallengeBoard() {
             target_url: c.target_url,
             file_url: c.file_url,
             hints: c.hints || [],
+            author: c.author || 'System',
             solved: solvedSet.has(c.id),
             solves: 0
         }));
@@ -279,6 +280,9 @@ export function ChallengeBoard() {
                                             </Badge>
                                         </div>
                                         <CardTitle className="text-xl group-hover:text-primary transition-colors">{challenge.title}</CardTitle>
+                                        <p className="text-xs font-mono text-muted-foreground mt-1">
+                                            Created by <span className="text-primary/80">@{challenge.author}</span>
+                                        </p>
                                     </CardHeader>
 
                                     <CardContent className="relative z-0 pb-2">

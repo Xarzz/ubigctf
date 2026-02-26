@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Terminal, UserCircle, User, LogIn, UserPlus, Phone, LogOut } from "lucide-react";
+import { Terminal, UserCircle, User, LogIn, UserPlus, Phone, LogOut, Flag } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { useState } from "react";
 import {
@@ -109,6 +109,12 @@ export function NavBar() {
                                                     <Link href="/profile" className="flex items-center w-full">
                                                         <User className="mr-2 h-4 w-4 text-primary" />
                                                         <span>My Profile</span>
+                                                    </Link>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem asChild className="hover:bg-primary/20 hover:text-white cursor-pointer transition-colors focus:bg-primary/20">
+                                                    <Link href="/profile/challenges" className="flex items-center w-full">
+                                                        <Flag className="mr-2 h-4 w-4 text-primary" />
+                                                        <span>My Challenges</span>
                                                     </Link>
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem
