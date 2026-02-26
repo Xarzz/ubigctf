@@ -270,7 +270,7 @@ export function ChallengeBoard() {
                                         </div>
                                     )}
 
-                                    <CardHeader className="pb-3 relative z-0">
+                                    <CardHeader className="pb-2 relative z-0">
                                         <div className="flex justify-between items-start mb-2">
                                             <Badge variant="outline" className={`${getDifficultyColor(challenge.difficulty)}`}>
                                                 {challenge.difficulty}
@@ -280,8 +280,8 @@ export function ChallengeBoard() {
                                             </Badge>
                                         </div>
                                         <CardTitle className="text-xl group-hover:text-primary transition-colors">{challenge.title}</CardTitle>
-                                        <p className="text-xs font-mono text-muted-foreground mt-1">
-                                            Created by <span className="text-primary/80">@{challenge.author}</span>
+                                        <p className="text-[10px] font-mono text-muted-foreground/60 mt-0.5">
+                                            Created by <span className="text-primary/70">@{challenge.author}</span>
                                         </p>
                                     </CardHeader>
 
