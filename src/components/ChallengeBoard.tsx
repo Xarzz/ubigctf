@@ -161,24 +161,16 @@ export function ChallengeBoard({ initialChallenges = [] }: { initialChallenges?:
         const cleanDbFlag = (selectedChallenge.flag || "").trim();
         const isCorrect = cleanInput === cleanDbFlag;
 
-        let timeoutId: any;
         try {
-            const submitPromise = supabase.from('submissions').insert([{
+            const { error: insertError } = await supabase.from('submissions').insert([{
                 user_id: user.id,
                 challenge_id: selectedChallenge.id,
                 is_correct: isCorrect,
                 submitted_flag: cleanInput
             }]);
 
-            const timeoutPromise = new Promise((_, reject) => {
-                timeoutId = setTimeout(() => reject(new Error('TIMEOUT')), 8000);
-            });
-
-            // If Supabase request is very quick, Promise.race resolves and timeoutId is later cleared in finally
-            const result = await Promise.race([submitPromise, timeoutPromise]) as any;
-
-            if (result?.error && result.error.code !== '23505') {
-                throw new Error(result.error.message || "Database insert failed");
+            if (insertError && insertError.code !== '23505') {
+                throw new Error(insertError.message || "Database insert failed");
             }
 
             if (isCorrect) {
@@ -199,14 +191,13 @@ export function ChallengeBoard({ initialChallenges = [] }: { initialChallenges?:
             }
         } catch (error: any) {
             console.error("Submission Error:", error);
-            if (error?.message === 'TIMEOUT') {
-                toast.error("Network timeout. The connection dropped. Please try again.");
+            if (error?.message?.includes('fetch') || error?.message?.includes('network')) {
+                toast.error("Network issue. Your connection may be unstable. Please try again.");
             } else {
-                toast.error("Telemetry error: Could not verify flag.");
+                toast.error(error?.message || "Telemetry error: Could not verify flag.");
                 setFlagInput(""); // Auto-clear on other errors
             }
         } finally {
-            if (timeoutId) clearTimeout(timeoutId);
             setIsSubmittingFlag(false);
         }
     };
