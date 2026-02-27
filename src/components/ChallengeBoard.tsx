@@ -156,16 +156,25 @@ export function ChallengeBoard() {
         if (!selectedChallenge || !user) return;
         setIsSubmittingFlag(true);
 
-        const isCorrect = flagInput.trim() === selectedChallenge.flag;
+        const cleanInput = flagInput.trim();
+        const cleanDbFlag = (selectedChallenge.flag || "").trim();
+
+        // Robust check to handle if admin accidentally added spaces at start/end of the database flag
+        const isCorrect = cleanInput === cleanDbFlag;
 
         try {
             // Log submission to database
-            await supabase.from('submissions').insert([{
+            const { error } = await supabase.from('submissions').insert([{
                 user_id: user.id,
                 challenge_id: selectedChallenge.id,
                 is_correct: isCorrect,
-                submitted_flag: flagInput.trim()
+                submitted_flag: cleanInput
             }]);
+
+            // If it errors specifically because the user already submitted correctly (unique index once_per_challenge), we still treat it as success locally
+            if (error && error.code !== '23505') {
+                throw error;
+            }
 
             if (isCorrect) {
                 toast.success("Correct Flag! You have captured the target.");
@@ -181,6 +190,7 @@ export function ChallengeBoard() {
                 toast.error("Incorrect flag. Try harder!");
             }
         } catch (error) {
+            console.error("Submission Error:", error);
             toast.error("Telemetry error: Could not verify flag.");
         } finally {
             setIsSubmittingFlag(false);
