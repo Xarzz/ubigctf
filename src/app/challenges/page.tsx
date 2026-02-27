@@ -1,7 +1,53 @@
 import { ChallengeBoard } from "@/components/ChallengeBoard";
 import { TerminalSquare } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
-export default function ChallengesPage() {
+export const revalidate = 60; // Cache on server for 60 seconds
+
+async function getInitialChallenges() {
+    try {
+        const [challengesRes, solvesRes] = await Promise.all([
+            supabase
+                .from('challenges')
+                .select(`id, title, description, points, difficulty, flag, is_active, target_url, file_url, hints, created_at, categories (name), author`)
+                .eq('is_active', true)
+                .order('created_at', { ascending: false }),
+            supabase
+                .from('submissions')
+                .select('challenge_id')
+                .eq('is_correct', true)
+        ]);
+
+        const solvesMap = new Map<string, number>();
+        if (solvesRes.data) {
+            for (const sub of solvesRes.data) {
+                solvesMap.set(sub.challenge_id, (solvesMap.get(sub.challenge_id) || 0) + 1);
+            }
+        }
+
+        return (challengesRes.data || []).map(c => ({
+            id: c.id,
+            title: c.title,
+            description: c.description,
+            category: (c.categories as any)?.name || "Unknown",
+            points: c.points,
+            difficulty: c.difficulty,
+            flag: c.flag,
+            createdAt: c.created_at,
+            target_url: c.target_url,
+            file_url: c.file_url,
+            hints: c.hints || [],
+            author: c.author || 'System',
+            solves: solvesMap.get(c.id) || 0
+        }));
+    } catch {
+        return [];
+    }
+}
+
+export default async function ChallengesPage() {
+    const initialChallenges = await getInitialChallenges();
+
     return (
         <div className="container mx-auto px-4 py-8">
             <div className="relative">
@@ -16,7 +62,7 @@ export default function ChallengesPage() {
                             Challenges
                         </h1>
                     </div>
-                    <ChallengeBoard />
+                    <ChallengeBoard initialChallenges={initialChallenges} />
                 </div>
             </div>
         </div>

@@ -44,7 +44,7 @@ const getDifficultyColor = (difficulty: string) => {
     }
 };
 
-export function ChallengeBoard() {
+export function ChallengeBoard({ initialChallenges = [] }: { initialChallenges?: any[] }) {
     const { user, isLoaded } = useUser();
     const router = useRouter();
 
@@ -104,10 +104,11 @@ export function ChallengeBoard() {
     };
 
     // 1. Fetch public challenges immediately, don't wait for auth (Massive speed improvement!)
-    const { data: challengesBase = [], mutate: mutateChallenges, isLoading: isLoadingChallenges } = useSWR(
+    // Using SSR fallbackData to instantly show challenges statically before client hydrates
+    const { data: challengesBase = initialChallenges, mutate: mutateChallenges, isLoading: isLoadingChallenges } = useSWR(
         'public_challenges',
         fetchChallengesData,
-        { refreshInterval: 60000, revalidateOnFocus: false, revalidateIfStale: false }
+        { fallbackData: initialChallenges, refreshInterval: 60000, revalidateOnFocus: false, revalidateIfStale: false }
     );
 
     // 2. Fetch user submissions only if authenticated
@@ -220,9 +221,10 @@ export function ChallengeBoard() {
         })
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
+    // Let's modify the condition so we don't show "Loading Intel" if we have challenges ready
     return (
         <div className="space-y-12 pb-20">
-            {isLoadingChallenges ? (
+            {(isLoadingChallenges && challengesBase.length === 0) ? (
                 <div className="flex flex-col items-center justify-center py-20 animate-in fade-in duration-500">
                     <TerminalSquare className="w-12 h-12 text-primary/30 mb-4 animate-pulse duration-1000" />
                     <p className="text-primary/50 font-mono tracking-widest text-sm uppercase">Loading Intel...</p>
