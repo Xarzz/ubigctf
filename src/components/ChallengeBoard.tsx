@@ -55,33 +55,33 @@ export function ChallengeBoard() {
             const keyData = Array.isArray(args[0]) ? args[0] : args;
             const userId = keyData[1];
 
-            // Fetch active challenges
-            const { data: challengesData, error: cErr } = await supabase
-                .from('challenges')
-                .select(`id, title, description, points, difficulty, flag, is_active, target_url, file_url, hints, created_at, categories (name), author`)
-                .eq('is_active', true)
-                .order('created_at', { ascending: false });
+            // Launch both queries in parallel for maximum speed
+            const [challengesRes, subsRes] = await Promise.all([
+                supabase
+                    .from('challenges')
+                    .select(`id, title, description, points, difficulty, flag, is_active, target_url, file_url, hints, created_at, categories (name), author`)
+                    .eq('is_active', true)
+                    .order('created_at', { ascending: false }),
 
-            if (cErr) {
-                console.error("Supabase Challenges Error:", cErr);
-                throw cErr;
+                userId
+                    ? supabase.from('submissions').select('challenge_id').eq('user_id', userId).eq('is_correct', true)
+                    : Promise.resolve({ data: null, error: null })
+            ]);
+
+            if (challengesRes.error) {
+                console.error("Supabase Challenges Error:", challengesRes.error);
+                throw challengesRes.error;
             }
 
             let solvedSet = new Set<string>();
 
-            if (userId) {
-                const { data: subsReq, error: subsErr } = await supabase
-                    .from('submissions')
-                    .select('challenge_id')
-                    .eq('user_id', userId)
-                    .eq('is_correct', true);
-
-                if (subsErr) {
-                    console.error("Supabase Submissions Error:", subsErr);
-                } else if (subsReq) {
-                    subsReq.forEach(s => solvedSet.add(s.challenge_id));
-                }
+            if (subsRes.error) {
+                console.error("Supabase Submissions Error:", subsRes.error);
+            } else if (subsRes.data) {
+                subsRes.data.forEach(s => solvedSet.add(s.challenge_id));
             }
+
+            const challengesData = challengesRes.data || [];
 
             return (challengesData || []).map(c => ({
                 id: c.id,
