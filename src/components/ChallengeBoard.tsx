@@ -283,13 +283,7 @@ export function ChallengeBoard() {
                                     className={`group relative overflow-hidden flex flex-col gap-2 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_-5px_var(--primary)] ${challenge.solved ? "border-primary/50 bg-card/50" : "border-border/50 bg-card/80 backdrop-blur-sm"
                                         }`}
                                 >
-                                    {/* Solved Overlay */}
-                                    {challenge.solved && (
-                                        <div className="absolute inset-0 bg-black/60 z-10 flex flex-col items-center justify-center backdrop-blur-[2px] pointer-events-none">
-                                            <CheckCircle className="w-16 h-16 text-primary mb-2 animate-bounce drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]" />
-                                            <span className="text-lg font-bold text-primary uppercase tracking-widest shadow-red-500 drop-shadow-[0_0_5px_rgba(239,68,68,1)] bg-black/50 px-4 py-1 rounded-full border border-primary/30">Solved</span>
-                                        </div>
-                                    )}
+
 
                                     <CardHeader className="pb-2 relative z-0">
                                         <div className="flex justify-between items-start mb-2">
@@ -300,7 +294,15 @@ export function ChallengeBoard() {
                                                 {challenge.points} pts
                                             </Badge>
                                         </div>
-                                        <CardTitle className="text-xl group-hover:text-primary transition-colors">{challenge.title}</CardTitle>
+                                        <CardTitle className="text-xl group-hover:text-primary transition-colors flex items-start gap-2">
+                                            <span className="flex-1">{challenge.title}</span>
+                                            {challenge.solved && (
+                                                <div className="flex items-center gap-1.5 bg-primary/10 px-2 py-0.5 rounded border border-primary/30 shrink-0">
+                                                    <CheckCircle className="w-3.5 h-3.5 text-primary drop-shadow-[0_0_5px_rgba(239,68,68,0.8)]" />
+                                                    <span className="text-[9px] font-bold text-primary uppercase tracking-widest">Solved</span>
+                                                </div>
+                                            )}
+                                        </CardTitle>
                                         <p className="text-sm font-mono text-muted-foreground mt-1">
                                             Created by <span className="text-primary/90 font-bold tracking-wide">@{challenge.author}</span>
                                         </p>
