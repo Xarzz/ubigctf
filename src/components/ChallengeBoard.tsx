@@ -49,7 +49,11 @@ export function ChallengeBoard() {
     const router = useRouter();
 
     // SWR Fetcher
-    const fetchChallenges = async ([key, userId]: [string, string | undefined]) => {
+    const fetchChallenges = async (...args: any[]) => {
+        // Handle SWR argument passing gracefully (whether passed as an array in args[0] or spread across args)
+        const keyData = Array.isArray(args[0]) ? args[0] : args;
+        const userId = keyData[1];
+
         // Fetch active challenges
         const { data: challengesData, error: cErr } = await supabase
             .from('challenges')
@@ -143,8 +147,9 @@ export function ChallengeBoard() {
 
             if (isCorrect) {
                 toast.success("Correct Flag! You have captured the target.");
+                setSelectedChallenge((prev: any) => ({ ...prev, solved: true }));
                 mutateChallenges(); // Instantly update board without refresh
-                setIsDialogOpen(false);
+                // Do not close the dialog so the user can see their success result
             } else {
                 toast.error("Incorrect flag. Try harder!");
             }
@@ -385,28 +390,39 @@ export function ChallengeBoard() {
                                 )}
 
                                 <div className="space-y-3 p-5 rounded-xl bg-white/[0.02] border border-white/5">
-                                    <label htmlFor="flag" className="text-sm font-semibold flex items-center text-gray-300">
-                                        <Flag className="w-4 h-4 mr-2 text-primary" />
-                                        Submit Flag Payload
-                                    </label>
-                                    <Input
-                                        id="flag"
-                                        placeholder="UbigCTF{...}"
-                                        value={flagInput}
-                                        onChange={(e) => setFlagInput(e.target.value)}
-                                        className="bg-black border-primary/30 focus-visible:ring-primary focus-visible:border-primary text-green-400 font-mono"
-                                        onKeyDown={(e) => e.key === "Enter" && handleSubmitFlag()}
-                                    />
+                                    {selectedChallenge.solved ? (
+                                        <div className="flex flex-col items-center justify-center p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+                                            <CheckCircle className="w-8 h-8 text-green-500 mb-2 drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+                                            <p className="text-green-400 font-bold uppercase tracking-widest text-sm drop-shadow-sm">Target Captured</p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <label htmlFor="flag" className="text-sm font-semibold flex items-center text-gray-300">
+                                                <Flag className="w-4 h-4 mr-2 text-primary" />
+                                                Submit Flag Payload
+                                            </label>
+                                            <Input
+                                                id="flag"
+                                                placeholder="UbigCTF{...}"
+                                                value={flagInput}
+                                                onChange={(e) => setFlagInput(e.target.value)}
+                                                className="bg-black border-primary/30 focus-visible:ring-primary focus-visible:border-primary text-green-400 font-mono"
+                                                onKeyDown={(e) => e.key === "Enter" && handleSubmitFlag()}
+                                            />
+                                        </>
+                                    )}
                                 </div>
                             </div>
 
                             <DialogFooter className="shrink-0 p-6 pt-4 sm:justify-between border-t border-white/10 bg-black/40">
                                 <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="hover:bg-red-500/10 hover:text-red-400">
-                                    Abort Mission
+                                    {selectedChallenge.solved ? "Close" : "Abort Mission"}
                                 </Button>
-                                <Button type="button" disabled={isSubmittingFlag || selectedChallenge.solved} onClick={handleSubmitFlag} className="bg-primary text-white hover:bg-primary/90 shadow-[0_0_15px_rgba(239,68,68,0.4)] font-bold">
-                                    {isSubmittingFlag ? "Transmitting..." : selectedChallenge.solved ? "Target Neutralized" : "Execute Target"}
-                                </Button>
+                                {!selectedChallenge.solved && (
+                                    <Button type="button" disabled={isSubmittingFlag} onClick={handleSubmitFlag} className="bg-primary text-white hover:bg-primary/90 shadow-[0_0_15px_rgba(239,68,68,0.4)] font-bold">
+                                        {isSubmittingFlag ? "Transmitting..." : "Execute Target"}
+                                    </Button>
+                                )}
                             </DialogFooter>
                         </>
                     )}
