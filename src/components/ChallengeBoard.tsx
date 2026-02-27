@@ -108,14 +108,14 @@ export function ChallengeBoard({ initialChallenges = [] }: { initialChallenges?:
     const { data: challengesBase = initialChallenges, mutate: mutateChallenges, isLoading: isLoadingChallenges } = useSWR(
         'public_challenges',
         fetchChallengesData,
-        { fallbackData: initialChallenges, refreshInterval: 60000, revalidateOnFocus: false, revalidateIfStale: false }
+        { fallbackData: initialChallenges, refreshInterval: 120000, revalidateOnFocus: false, revalidateIfStale: false }
     );
 
     // 2. Fetch user submissions only if authenticated
     const { data: userSolvedSet = new Set(), mutate: mutateUserSubs, isLoading: isLoadingSubs } = useSWR(
         user?.id ? ['user_submissions', user.id] : null,
         fetchUserSubmissions,
-        { refreshInterval: 60000, revalidateOnFocus: false }
+        { refreshInterval: 120000, revalidateOnFocus: false }
     );
 
     // 3. Merge data locally
@@ -159,12 +159,10 @@ export function ChallengeBoard({ initialChallenges = [] }: { initialChallenges?:
 
         const cleanInput = flagInput.trim();
         const cleanDbFlag = (selectedChallenge.flag || "").trim();
-
-        // Robust check to handle if admin accidentally added spaces at start/end of the database flag
         const isCorrect = cleanInput === cleanDbFlag;
 
+        let timeoutId: any;
         try {
-            // Log submission to database with a timeout in case network drops
             const submitPromise = supabase.from('submissions').insert([{
                 user_id: user.id,
                 challenge_id: selectedChallenge.id,
@@ -173,28 +171,31 @@ export function ChallengeBoard({ initialChallenges = [] }: { initialChallenges?:
             }]);
 
             const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('TIMEOUT')), 8000);
+                timeoutId = setTimeout(() => reject(new Error('TIMEOUT')), 8000);
             });
 
+            // If Supabase request is very quick, Promise.race resolves and timeoutId is later cleared in finally
             const result = await Promise.race([submitPromise, timeoutPromise]) as any;
 
-            // If it errors specifically because the user already submitted correctly (unique index once_per_challenge), we still treat it as success locally
-            if (result.error && result.error.code !== '23505') {
-                throw result.error;
+            if (result?.error && result.error.code !== '23505') {
+                throw new Error(result.error.message || "Database insert failed");
             }
 
             if (isCorrect) {
                 toast.success("Correct Flag! You have captured the target.");
                 setSelectedChallenge((prev: any) => ({ ...prev, solved: true }));
-                // Soft mutate both caches to instantly show green checkmarks and increment solve count
-                mutateUserSubs((prev: any) => new Set([...(prev || []), selectedChallenge.id]), { revalidate: false });
-                mutateChallenges((prev: any) => {
-                    const mapped = prev?.map((c: any) => c.id === selectedChallenge.id ? { ...c, solves: (c.solves || 0) + 1 } : c);
-                    return mapped;
-                }, { revalidate: false });
-                // Do not close the dialog so the user can see their success result
+                try {
+                    // Update caches without revalidating
+                    mutateUserSubs((prev: any) => new Set([...Array.from(prev || []), selectedChallenge.id]), { revalidate: false }).catch(() => { });
+                    mutateChallenges((prev: any) => {
+                        return prev?.map((c: any) => c.id === selectedChallenge.id ? { ...c, solves: (c.solves || 0) + 1 } : c);
+                    }, { revalidate: false }).catch(() => { });
+                } catch (e) {
+                    console.error("Mutation non-critical error:", e);
+                }
             } else {
                 toast.error("Incorrect flag. Try harder!");
+                setFlagInput(""); // Auto-clear input on fail
             }
         } catch (error: any) {
             console.error("Submission Error:", error);
@@ -202,12 +203,11 @@ export function ChallengeBoard({ initialChallenges = [] }: { initialChallenges?:
                 toast.error("Network timeout. The connection dropped. Please try again.");
             } else {
                 toast.error("Telemetry error: Could not verify flag.");
+                setFlagInput(""); // Auto-clear on other errors
             }
         } finally {
+            if (timeoutId) clearTimeout(timeoutId);
             setIsSubmittingFlag(false);
-            if (!isCorrect) {
-                setFlagInput(""); // Auto-clear input on fail
-            }
         }
     };
 

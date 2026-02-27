@@ -2,11 +2,11 @@ import { ChallengeBoard } from "@/components/ChallengeBoard";
 import { TerminalSquare } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
-export const revalidate = 60; // Cache on server for 60 seconds
+export const dynamic = "force-dynamic";
 
 async function getInitialChallenges() {
     try {
-        const [challengesRes, solvesRes] = await Promise.all([
+        const fetchPromise = Promise.all([
             supabase
                 .from('challenges')
                 .select(`id, title, description, points, difficulty, flag, is_active, target_url, file_url, hints, created_at, categories (name), author`)
@@ -18,14 +18,22 @@ async function getInitialChallenges() {
                 .eq('is_correct', true)
         ]);
 
+        // Max 4 seconds for SSR fetch. Prevent Next.js 504 Server Timeout.
+        // If it fails or times out, client-side SWR will seamlessly fallback to fetching it.
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('SSR_TIMEOUT')), 4000)
+        );
+
+        const [challengesRes, solvesRes] = await Promise.race([fetchPromise, timeoutPromise]) as any;
+
         const solvesMap = new Map<string, number>();
-        if (solvesRes.data) {
+        if (solvesRes?.data) {
             for (const sub of solvesRes.data) {
                 solvesMap.set(sub.challenge_id, (solvesMap.get(sub.challenge_id) || 0) + 1);
             }
         }
 
-        return (challengesRes.data || []).map(c => ({
+        return (challengesRes.data || []).map((c: any) => ({
             id: c.id,
             title: c.title,
             description: c.description,
