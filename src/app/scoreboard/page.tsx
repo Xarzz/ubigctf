@@ -1,6 +1,9 @@
-import { Trophy, Medal, Shield, User, Users, TerminalSquare } from "lucide-react";
+"use client";
+
+import { Trophy, Medal, Shield, User, Users, TerminalSquare, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
+import useSWR from "swr";
 
 interface LeaderboardEntry {
     id: string;
@@ -11,15 +14,14 @@ interface LeaderboardEntry {
     type: "user" | "team";
 }
 
-export const revalidate = 0; // Ensure data is always live, never statically cached across updates
-
-export default async function ScoreboardPage() {
-    // Fetch data directly on the server for instant HTML rendering
+const fetchLeaderboard = async () => {
     const { data, error } = await supabase
         .from('leaderboard')
         .select('*');
 
-    const leaderboard = (!error && data) ? data.map((p, idx) => ({
+    if (error) throw error;
+
+    return data ? data.map((p, idx) => ({
         id: p.id,
         rank: idx + 1,
         name: p.name || 'Anonymous Hacker',
@@ -27,6 +29,13 @@ export default async function ScoreboardPage() {
         solved: p.solved || 0,
         type: (p.type as "user" | "team") || 'user'
     })) : [];
+};
+
+export default function ScoreboardPage() {
+    const { data: leaderboard = [], isLoading } = useSWR('public_leaderboard', fetchLeaderboard, {
+        refreshInterval: 3000, // Real-time polling every 3 seconds
+        revalidateOnFocus: true
+    });
 
     return (
         <div className="container mx-auto px-4 py-16 max-w-5xl flex-1 flex flex-col justify-center">
@@ -47,7 +56,12 @@ export default async function ScoreboardPage() {
                 </div>
 
                 <div className="divide-y divide-border/30">
-                    {leaderboard.length === 0 ? (
+                    {isLoading && leaderboard.length === 0 ? (
+                        <div className="p-16 flex flex-col items-center justify-center text-primary/50 font-mono gap-4 animate-pulse">
+                            <Loader2 className="w-8 h-8 animate-spin" />
+                            Loading live rankings...
+                        </div>
+                    ) : leaderboard.length === 0 ? (
                         <div className="p-8 text-center text-muted-foreground font-mono">
                             No hackers on the board yet. First blood is waiting!
                         </div>
