@@ -140,8 +140,7 @@ export function NavBar() {
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem
                                                     asChild
-                                                    onClick={async (e) => {
-                                                        e.preventDefault();
+                                                    onSelect={async () => {
                                                         await signOut();
                                                         window.location.href = '/login';
                                                     }}

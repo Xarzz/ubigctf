@@ -50,49 +50,60 @@ export function ChallengeBoard() {
 
     // SWR Fetcher
     const fetchChallenges = async (...args: any[]) => {
-        // Handle SWR argument passing gracefully (whether passed as an array in args[0] or spread across args)
-        const keyData = Array.isArray(args[0]) ? args[0] : args;
-        const userId = keyData[1];
+        try {
+            // Handle SWR argument passing gracefully (whether passed as an array in args[0] or spread across args)
+            const keyData = Array.isArray(args[0]) ? args[0] : args;
+            const userId = keyData[1];
 
-        // Fetch active challenges
-        const { data: challengesData, error: cErr } = await supabase
-            .from('challenges')
-            .select(`id, title, description, points, difficulty, flag, is_active, target_url, file_url, hints, created_at, categories (name), author`)
-            .eq('is_active', true)
-            .order('created_at', { ascending: false });
+            // Fetch active challenges
+            const { data: challengesData, error: cErr } = await supabase
+                .from('challenges')
+                .select(`id, title, description, points, difficulty, flag, is_active, target_url, file_url, hints, created_at, categories (name), author`)
+                .eq('is_active', true)
+                .order('created_at', { ascending: false });
 
-        if (cErr) throw cErr;
-
-        let solvedSet = new Set<string>();
-
-        if (userId) {
-            const { data: subsReq } = await supabase
-                .from('submissions')
-                .select('challenge_id')
-                .eq('user_id', userId)
-                .eq('is_correct', true);
-
-            if (subsReq) {
-                subsReq.forEach(s => solvedSet.add(s.challenge_id));
+            if (cErr) {
+                console.error("Supabase Challenges Error:", cErr);
+                throw cErr;
             }
-        }
 
-        return (challengesData || []).map(c => ({
-            id: c.id,
-            title: c.title,
-            description: c.description,
-            category: (c.categories as any)?.name || "Unknown",
-            points: c.points,
-            difficulty: c.difficulty,
-            flag: c.flag,
-            createdAt: c.created_at,
-            target_url: c.target_url,
-            file_url: c.file_url,
-            hints: c.hints || [],
-            author: c.author || 'System',
-            solved: solvedSet.has(c.id),
-            solves: 0
-        }));
+            let solvedSet = new Set<string>();
+
+            if (userId) {
+                const { data: subsReq, error: subsErr } = await supabase
+                    .from('submissions')
+                    .select('challenge_id')
+                    .eq('user_id', userId)
+                    .eq('is_correct', true);
+
+                if (subsErr) {
+                    console.error("Supabase Submissions Error:", subsErr);
+                } else if (subsReq) {
+                    subsReq.forEach(s => solvedSet.add(s.challenge_id));
+                }
+            }
+
+            return (challengesData || []).map(c => ({
+                id: c.id,
+                title: c.title,
+                description: c.description,
+                category: (c.categories as any)?.name || "Unknown",
+                points: c.points,
+                difficulty: c.difficulty,
+                flag: c.flag,
+                createdAt: c.created_at,
+                target_url: c.target_url,
+                file_url: c.file_url,
+                hints: c.hints || [],
+                author: c.author || 'System',
+                solved: solvedSet.has(c.id),
+                solves: 0
+            }));
+        } catch (e: any) {
+            console.error("fetchChallenges caught an error:", e);
+            toast.error(e.message || "Intel network disrupted. Retrying...");
+            throw e;
+        }
     };
 
     const { data: challenges = [], mutate: mutateChallenges, isLoading: isLoadingChallenges } = useSWR(
@@ -185,7 +196,12 @@ export function ChallengeBoard() {
 
     return (
         <div className="space-y-12 pb-20">
-            {challenges.length === 0 && !isLoadingChallenges ? (
+            {(!isLoaded || isLoadingChallenges) ? (
+                <div className="flex flex-col items-center justify-center py-20 animate-in fade-in duration-500">
+                    <TerminalSquare className="w-12 h-12 text-primary/30 mb-4 animate-pulse duration-1000" />
+                    <p className="text-primary/50 font-mono tracking-widest text-sm uppercase">Loading Intel...</p>
+                </div>
+            ) : challenges.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 animate-in fade-in zoom-in-95 duration-700">
                     <div className="bg-primary/5 p-6 rounded-full mb-6 border border-primary/10 shadow-[0_0_30px_rgba(239,68,68,0.1)] relative">
                         <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
