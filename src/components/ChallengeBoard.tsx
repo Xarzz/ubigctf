@@ -48,24 +48,19 @@ export function ChallengeBoard() {
     const { user, isLoaded } = useUser();
     const router = useRouter();
 
-    // SWR Fetcher
-    const fetchChallenges = async (...args: any[]) => {
+    // SWR Fetchers optimized for separate parallel execution without blocking
+    const fetchChallengesData = async () => {
         try {
-            // Handle SWR argument passing gracefully (whether passed as an array in args[0] or spread across args)
-            const keyData = Array.isArray(args[0]) ? args[0] : args;
-            const userId = keyData[1];
-
-            // Launch both queries in parallel for maximum speed
-            const [challengesRes, subsRes] = await Promise.all([
+            const [challengesRes, solvesRes] = await Promise.all([
                 supabase
                     .from('challenges')
                     .select(`id, title, description, points, difficulty, flag, is_active, target_url, file_url, hints, created_at, categories (name), author`)
                     .eq('is_active', true)
                     .order('created_at', { ascending: false }),
-
-                userId
-                    ? supabase.from('submissions').select('challenge_id').eq('user_id', userId).eq('is_correct', true)
-                    : Promise.resolve({ data: null, error: null })
+                supabase
+                    .from('submissions')
+                    .select('challenge_id')
+                    .eq('is_correct', true)
             ]);
 
             if (challengesRes.error) {
@@ -73,17 +68,14 @@ export function ChallengeBoard() {
                 throw challengesRes.error;
             }
 
-            let solvedSet = new Set<string>();
-
-            if (subsRes.error) {
-                console.error("Supabase Submissions Error:", subsRes.error);
-            } else if (subsRes.data) {
-                subsRes.data.forEach(s => solvedSet.add(s.challenge_id));
+            const solvesMap = new Map<string, number>();
+            if (solvesRes.data) {
+                for (const sub of solvesRes.data) {
+                    solvesMap.set(sub.challenge_id, (solvesMap.get(sub.challenge_id) || 0) + 1);
+                }
             }
 
-            const challengesData = challengesRes.data || [];
-
-            return (challengesData || []).map(c => ({
+            return (challengesRes.data || []).map(c => ({
                 id: c.id,
                 title: c.title,
                 description: c.description,
@@ -96,21 +88,40 @@ export function ChallengeBoard() {
                 file_url: c.file_url,
                 hints: c.hints || [],
                 author: c.author || 'System',
-                solved: solvedSet.has(c.id),
-                solves: 0
+                solves: solvesMap.get(c.id) || 0
             }));
         } catch (e: any) {
             console.error("fetchChallenges caught an error:", e);
-            toast.error(e.message || "Intel network disrupted. Retrying...");
             throw e;
         }
     };
 
-    const { data: challenges = [], mutate: mutateChallenges, isLoading: isLoadingChallenges } = useSWR(
-        isLoaded ? ['public_challenges', user?.id] : null,
-        fetchChallenges,
-        { refreshInterval: 60000 } // Auto refetch every minute
+    const fetchUserSubmissions = async (keyArgs: any[]) => {
+        const userId = keyArgs[1];
+        if (!userId) return new Set<string>();
+        const { data } = await supabase.from('submissions').select('challenge_id').eq('user_id', userId).eq('is_correct', true);
+        return new Set((data || []).map(s => s.challenge_id));
+    };
+
+    // 1. Fetch public challenges immediately, don't wait for auth (Massive speed improvement!)
+    const { data: challengesBase = [], mutate: mutateChallenges, isLoading: isLoadingChallenges } = useSWR(
+        'public_challenges',
+        fetchChallengesData,
+        { refreshInterval: 60000, revalidateOnFocus: false, revalidateIfStale: false }
     );
+
+    // 2. Fetch user submissions only if authenticated
+    const { data: userSolvedSet = new Set(), mutate: mutateUserSubs, isLoading: isLoadingSubs } = useSWR(
+        user?.id ? ['user_submissions', user.id] : null,
+        fetchUserSubmissions,
+        { refreshInterval: 60000, revalidateOnFocus: false }
+    );
+
+    // 3. Merge data locally
+    const challenges = challengesBase.map(c => ({
+        ...c,
+        solved: userSolvedSet.has(c.id)
+    }));
 
     const [selectedChallenge, setSelectedChallenge] = useState<any>(null);
     const [flagInput, setFlagInput] = useState("");
@@ -159,7 +170,12 @@ export function ChallengeBoard() {
             if (isCorrect) {
                 toast.success("Correct Flag! You have captured the target.");
                 setSelectedChallenge((prev: any) => ({ ...prev, solved: true }));
-                mutateChallenges(); // Instantly update board without refresh
+                // Soft mutate both caches to instantly show green checkmarks and increment solve count
+                mutateUserSubs((prev: any) => new Set([...(prev || []), selectedChallenge.id]), false);
+                mutateChallenges((prev: any) => {
+                    const mapped = prev?.map((c: any) => c.id === selectedChallenge.id ? { ...c, solves: (c.solves || 0) + 1 } : c);
+                    return mapped;
+                }, false);
                 // Do not close the dialog so the user can see their success result
             } else {
                 toast.error("Incorrect flag. Try harder!");
@@ -196,7 +212,7 @@ export function ChallengeBoard() {
 
     return (
         <div className="space-y-12 pb-20">
-            {(!isLoaded || isLoadingChallenges) ? (
+            {isLoadingChallenges ? (
                 <div className="flex flex-col items-center justify-center py-20 animate-in fade-in duration-500">
                     <TerminalSquare className="w-12 h-12 text-primary/30 mb-4 animate-pulse duration-1000" />
                     <p className="text-primary/50 font-mono tracking-widest text-sm uppercase">Loading Intel...</p>
