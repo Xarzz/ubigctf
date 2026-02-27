@@ -49,7 +49,7 @@ export function ChallengeBoard() {
     const router = useRouter();
 
     // SWR Fetcher
-    const fetchChallenges = async () => {
+    const fetchChallenges = async ([key, userId]: [string, string | undefined]) => {
         // Fetch active challenges
         const { data: challengesData, error: cErr } = await supabase
             .from('challenges')
@@ -61,11 +61,11 @@ export function ChallengeBoard() {
 
         let solvedSet = new Set<string>();
 
-        if (user) {
+        if (userId) {
             const { data: subsReq } = await supabase
                 .from('submissions')
                 .select('challenge_id')
-                .eq('user_id', user.id)
+                .eq('user_id', userId)
                 .eq('is_correct', true);
 
             if (subsReq) {
@@ -264,9 +264,9 @@ export function ChallengeBoard() {
                                 >
                                     {/* Solved Overlay */}
                                     {challenge.solved && (
-                                        <div className="absolute inset-0 bg-black/60 z-10 flex flex-col items-center justify-center backdrop-blur-[2px]">
-                                            <CheckCircle className="w-16 h-16 text-primary mb-2 animate-bounce" />
-                                            <span className="text-lg font-bold text-primary uppercase tracking-widest shadow-red-500 drop-shadow-[0_0_5px_rgba(239,68,68,1)]">Solved</span>
+                                        <div className="absolute inset-0 bg-black/60 z-10 flex flex-col items-center justify-center backdrop-blur-[2px] pointer-events-none">
+                                            <CheckCircle className="w-16 h-16 text-primary mb-2 animate-bounce drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]" />
+                                            <span className="text-lg font-bold text-primary uppercase tracking-widest shadow-red-500 drop-shadow-[0_0_5px_rgba(239,68,68,1)] bg-black/50 px-4 py-1 rounded-full border border-primary/30">Solved</span>
                                         </div>
                                     )}
 
