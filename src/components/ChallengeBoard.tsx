@@ -154,7 +154,7 @@ export function ChallengeBoard({ initialChallenges = [] }: { initialChallenges?:
     const [isSubmittingFlag, setIsSubmittingFlag] = useState(false);
 
     const handleSubmitFlag = async () => {
-        if (!selectedChallenge || !user) return;
+        if (!selectedChallenge || !user || isSubmittingFlag) return;
         setIsSubmittingFlag(true);
 
         const cleanInput = flagInput.trim();
@@ -164,37 +164,50 @@ export function ChallengeBoard({ initialChallenges = [] }: { initialChallenges?:
         const isCorrect = cleanInput === cleanDbFlag;
 
         try {
-            // Log submission to database
-            const { error } = await supabase.from('submissions').insert([{
+            // Log submission to database with a timeout in case network drops
+            const submitPromise = supabase.from('submissions').insert([{
                 user_id: user.id,
                 challenge_id: selectedChallenge.id,
                 is_correct: isCorrect,
                 submitted_flag: cleanInput
             }]);
 
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('TIMEOUT')), 8000);
+            });
+
+            const result = await Promise.race([submitPromise, timeoutPromise]) as any;
+
             // If it errors specifically because the user already submitted correctly (unique index once_per_challenge), we still treat it as success locally
-            if (error && error.code !== '23505') {
-                throw error;
+            if (result.error && result.error.code !== '23505') {
+                throw result.error;
             }
 
             if (isCorrect) {
                 toast.success("Correct Flag! You have captured the target.");
                 setSelectedChallenge((prev: any) => ({ ...prev, solved: true }));
                 // Soft mutate both caches to instantly show green checkmarks and increment solve count
-                mutateUserSubs((prev: any) => new Set([...(prev || []), selectedChallenge.id]), false);
+                mutateUserSubs((prev: any) => new Set([...(prev || []), selectedChallenge.id]), { revalidate: false });
                 mutateChallenges((prev: any) => {
                     const mapped = prev?.map((c: any) => c.id === selectedChallenge.id ? { ...c, solves: (c.solves || 0) + 1 } : c);
                     return mapped;
-                }, false);
+                }, { revalidate: false });
                 // Do not close the dialog so the user can see their success result
             } else {
                 toast.error("Incorrect flag. Try harder!");
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Submission Error:", error);
-            toast.error("Telemetry error: Could not verify flag.");
+            if (error?.message === 'TIMEOUT') {
+                toast.error("Network timeout. The connection dropped. Please try again.");
+            } else {
+                toast.error("Telemetry error: Could not verify flag.");
+            }
         } finally {
             setIsSubmittingFlag(false);
+            if (!isCorrect) {
+                setFlagInput(""); // Auto-clear input on fail
+            }
         }
     };
 
