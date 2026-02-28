@@ -44,7 +44,7 @@ export default function RootLayout({
           <footer className="border-t border-border/40 bg-background/95 backdrop-blur z-10 mt-auto">
             <div className="container mx-auto flex h-16 items-center px-4 justify-center">
               <p className="text-sm text-muted-foreground">
-                © {new Date().getFullYear()} UbigCTF. Built for mentoring purposes.
+                © {new Date().getFullYear()} UbigCTF
               </p>
             </div>
           </footer>
