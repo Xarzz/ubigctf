@@ -26,6 +26,9 @@ export default function AdminLKSDashboard() {
     const [allChallenges, setAllChallenges] = useState<any[]>([]);
     const [roomChallenges, setRoomChallenges] = useState<Set<string>>(new Set());
     const [searchChall, setSearchChall] = useState("");
+    const [filterCategory, setFilterCategory] = useState("All");
+
+    const categoriesList = ["All", ...Array.from(new Set(allChallenges.map(c => c.category)))];
 
     const fetchRooms = async () => {
         setIsLoading(true);
@@ -225,32 +228,46 @@ export default function AdminLKSDashboard() {
                         </DialogTitle>
                         <p className="text-sm text-muted-foreground">Select which global challenges should be injected into [{selectedRoom?.room_code}]</p>
                     </DialogHeader>
-                    <div className="py-2 shrink-0 relative">
-                        <Search className="absolute left-3 top-5 w-4 h-4 text-muted-foreground" />
-                        <Input value={searchChall} onChange={e => setSearchChall(e.target.value)} placeholder="Search global tasks..." className="pl-9 bg-black/50 border-white/10" />
+                    <div className="py-2 shrink-0 flex gap-2">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
+                            <Input value={searchChall} onChange={e => setSearchChall(e.target.value)} placeholder="Search global tasks..." className="pl-9 bg-black/50 border-white/10" />
+                        </div>
+                        <select
+                            value={filterCategory}
+                            onChange={(e) => setFilterCategory(e.target.value)}
+                            className="bg-black/50 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary w-[160px]"
+                        >
+                            {categoriesList.map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                        </select>
                     </div>
                     <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-                        {allChallenges.filter(c => c.title.toLowerCase().includes(searchChall.toLowerCase())).map(challenge => {
-                            const isSelected = roomChallenges.has(challenge.id);
-                            return (
-                                <div key={challenge.id} onClick={() => toggleChallengeMapping(challenge.id)} className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${isSelected ? 'bg-primary/10 border-primary/40 shadow-[inset_0_0_15px_rgba(239,68,68,0.1)]' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}>
-                                    <div className="flex flex-col gap-1 w-full mr-4">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-bold text-white tracking-wide">{challenge.title}</span>
-                                            <Badge variant="outline" className="text-[10px] py-0 h-4 border-white/20 text-muted-foreground">{challenge.difficulty}</Badge>
+                        {allChallenges
+                            .filter(c => c.title.toLowerCase().includes(searchChall.toLowerCase()))
+                            .filter(c => filterCategory === "All" || c.category === filterCategory)
+                            .map(challenge => {
+                                const isSelected = roomChallenges.has(challenge.id);
+                                return (
+                                    <div key={challenge.id} onClick={() => toggleChallengeMapping(challenge.id)} className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${isSelected ? 'bg-primary/10 border-primary/40 shadow-[inset_0_0_15px_rgba(239,68,68,0.1)]' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}>
+                                        <div className="flex flex-col gap-1 w-full mr-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold text-white tracking-wide">{challenge.title}</span>
+                                                <Badge variant="outline" className="text-[10px] py-0 h-4 border-white/20 text-muted-foreground">{challenge.difficulty}</Badge>
+                                            </div>
+                                            <span className="text-xs font-mono text-primary/70">{challenge.category} &bull; {challenge.points} pts</span>
                                         </div>
-                                        <span className="text-xs font-mono text-primary/70">{challenge.category} &bull; {challenge.points} pts</span>
+                                        <div className="shrink-0">
+                                            {isSelected ? (
+                                                <CheckCircle className="w-5 h-5 text-primary drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]" />
+                                            ) : (
+                                                <div className="w-5 h-5 rounded-full border-2 border-white/20" />
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className="shrink-0">
-                                        {isSelected ? (
-                                            <CheckCircle className="w-5 h-5 text-primary drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]" />
-                                        ) : (
-                                            <div className="w-5 h-5 rounded-full border-2 border-white/20" />
-                                        )}
-                                    </div>
-                                </div>
-                            )
-                        })}
+                                )
+                            })}
                     </div>
                     <DialogFooter className="shrink-0 pt-4 border-t border-white/10">
                         <Button className="w-full bg-primary text-white hover:bg-primary/90 font-bold" onClick={() => setIsSetupOpen(false)}>Done</Button>
