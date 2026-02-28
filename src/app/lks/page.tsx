@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/hooks/useUser";
-import { TerminalSquare, Shield, LogIn, Loader2 } from "lucide-react";
+import { Target, Shield, LogIn, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -94,7 +94,7 @@ export default function LKSJoinPage() {
                 <form onSubmit={handleJoin} className="space-y-6">
                     <div className="space-y-2 relative">
                         <label htmlFor="roomCode" className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2">
-                            <TerminalSquare className="w-4 h-4" /> Room Access Code
+                            <Target className="w-4 h-4" /> Room Access Code
                         </label>
                         <Input
                             id="roomCode"

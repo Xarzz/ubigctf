@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { TerminalSquare, ShieldAlert } from "lucide-react";
+import { Target, ShieldAlert } from "lucide-react";
 import { LKSChallengeBoard } from "@/components/LKSChallengeBoard";
 
 // Disables static generation, forces to always fetch current room state
@@ -38,7 +38,7 @@ export default async function LKSRoomPage({ params }: { params: Promise<{ roomCo
             <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border/50 pb-6 relative z-10">
                 <div>
                     <div className="flex items-center gap-3 mb-2">
-                        <TerminalSquare className="w-6 h-6 text-primary" />
+                        <Target className="w-6 h-6 text-primary" />
                         <h1 className="text-3xl font-black tracking-tight text-white uppercase drop-shadow-[0_0_10px_rgba(239,68,68,0.3)]">
                             {room.title}
                         </h1>

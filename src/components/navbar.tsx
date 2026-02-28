@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Terminal, UserCircle, User, LogIn, UserPlus, Phone, LogOut, Flag, ChevronDown, TerminalSquare } from "lucide-react";
+import { Terminal, UserCircle, User, LogIn, UserPlus, Phone, LogOut, Flag, ChevronDown, TerminalSquare, Target } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { useState } from "react";
 import {
@@ -77,7 +77,7 @@ export function NavBar() {
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem asChild className="hover:bg-primary/20 hover:text-white cursor-pointer transition-colors focus:bg-primary/20">
                                                         <Link href="/lks" className="flex items-center w-full">
-                                                            <TerminalSquare className="mr-2 h-4 w-4 text-primary" />
+                                                            <Target className="mr-2 h-4 w-4 text-primary" />
                                                             <span>LKS Simulation</span>
                                                         </Link>
                                                     </DropdownMenuItem>

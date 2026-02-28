@@ -43,14 +43,9 @@ export default function AdminLayout({
         <div className="flex h-screen bg-[#050505] text-slate-200 overflow-hidden font-sans">
             {/* Sidebar Navigation */}
             <aside className="w-64 border-r border-border/40 bg-black/40 backdrop-blur-xl flex flex-col pt-6 z-20 shadow-[10px_0_30px_-10px_rgba(239,68,68,0.1)]">
-                <div className="px-6 mb-8 mt-2 flex items-center gap-3">
-                    <div className="p-2 bg-primary/20 rounded-lg border border-primary/30 shadow-[0_0_15px_rgba(239,68,68,0.3)]">
-                        <TerminalSquare className="w-6 h-6 text-primary animate-pulse" />
-                    </div>
-                    <div>
-                        <h2 className="text-xl font-black uppercase tracking-widest text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">UBIG<span className="text-primary">ADMIN</span></h2>
-                        <span className="text-[10px] text-primary font-mono uppercase tracking-widest leading-none">Command Center</span>
-                    </div>
+                <div className="px-6 mb-8 mt-4">
+                    <h2 className="text-xl font-black uppercase tracking-widest text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">UBIG<span className="text-primary">ADMIN</span></h2>
+                    <span className="text-[10px] text-primary font-mono uppercase tracking-widest leading-none">Command Center</span>
                 </div>
 
                 <nav className="flex-1 px-4 space-y-2">
