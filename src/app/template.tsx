@@ -9,9 +9,26 @@ function TemplateInner({ children }: { children: React.ReactNode }) {
     const searchParams = useSearchParams();
     const isHome = pathname === "/";
 
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(!isHome); // show immediately on non-home pages
     const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
     const prevPathRef = useRef<string | null>(null);
+
+    // On initial mount: hide the overlay after content paints
+    useEffect(() => {
+        if (isHome) return;
+        const raf1 = requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                hideTimerRef.current = setTimeout(() => {
+                    setIsLoading(false);
+                }, 600); // show for at least 600ms on initial page load
+            });
+        });
+        return () => {
+            cancelAnimationFrame(raf1);
+            if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         const currentPath = pathname + searchParams.toString();
