@@ -85,25 +85,43 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         };
 
         const initSession = async () => {
-            // getSession() will use the cached token and only validate it —
-            // much faster than a full auth round-trip.
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user && isMounted) {
-                setUserAuth(session.user);
-                await fetchProfile(session.user.id);
-            } else if (isMounted) {
-                setUserAuth(null);
-                setProfile(null);
-                setIsLoaded(true);
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
+                if (error) {
+                    // Invalid/expired refresh token — sign out silently
+                    console.warn("Session invalid, clearing:", error.message);
+                    await supabase.auth.signOut().catch(() => { });
+                    if (isMounted) {
+                        setUserAuth(null);
+                        setProfile(null);
+                        setIsLoaded(true);
+                    }
+                    return;
+                }
+                if (session?.user && isMounted) {
+                    setUserAuth(session.user);
+                    await fetchProfile(session.user.id);
+                } else if (isMounted) {
+                    setUserAuth(null);
+                    setProfile(null);
+                    setIsLoaded(true);
+                }
+            } catch (err: any) {
+                console.warn("Session init error:", err?.message);
+                if (isMounted) {
+                    setUserAuth(null);
+                    setProfile(null);
+                    setIsLoaded(true);
+                }
             }
         };
 
-        // If we had a cached user, kick off background profile fetch immediately.
+        // Always validate the session — even if we had a cached user,
+        // the refresh token might be stale. Profile fetch runs in parallel.
         if (cachedUser) {
-            fetchProfile(cachedUser.id);
-        } else {
-            initSession();
+            fetchProfile(cachedUser.id); // parallel for instant UI
         }
+        initSession(); // always validate / refresh token
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (!isMounted) return;
