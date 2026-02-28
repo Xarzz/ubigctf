@@ -40,8 +40,18 @@ export default function AdminLKSDashboard() {
     };
 
     const fetchGlobalChallenges = async () => {
-        const { data } = await supabase.from('challenges').select('id, title, category, difficulty, points').order('created_at', { ascending: false });
-        if (data) setAllChallenges(data);
+        const { data, error } = await supabase.from('challenges').select('id, title, categories(name), difficulty, points').order('created_at', { ascending: false });
+        if (error) {
+            console.error("Error fetching global challenges:", error);
+            toast.error("Failed to load global challenges");
+            return;
+        }
+        if (data) {
+            setAllChallenges(data.map((c: any) => ({
+                ...c,
+                category: c.categories?.name || "Unknown"
+            })));
+        }
     };
 
     useEffect(() => {
