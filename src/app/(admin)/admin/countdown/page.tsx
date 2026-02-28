@@ -18,11 +18,13 @@ export default function LKSCountdownPage() {
 
     const containerRef = useRef<HTMLDivElement>(null);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const endTimeRef = useRef<number | null>(null);
 
     // Scoreboard logic
     const [roomCode, setRoomCode] = useState<string | null>(null);
     const [roomId, setRoomId] = useState<string | null>(null);
     const [scoreboard, setScoreboard] = useState<any[]>([]);
+    const [isPersistedLoaded, setIsPersistedLoaded] = useState(false);
 
     useEffect(() => {
         // Grab from URL safely in client component
@@ -84,41 +86,97 @@ export default function LKSCountdownPage() {
         }
     };
 
+    // Load Timer State from LocalStorage
+    useEffect(() => {
+        const storageKey = `lks_timer_${roomCode || 'global'}`;
+        const saved = localStorage.getItem(storageKey);
+
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                setInitialTime(data.initialTime || 4 * 3600);
+                setIsConfiguring(data.isConfiguring ?? true);
+
+                if (data.isRunning && data.endTime) {
+                    endTimeRef.current = data.endTime;
+                    const remaining = Math.max(0, Math.floor((data.endTime - Date.now()) / 1000));
+                    setTimeLeft(remaining);
+                    setIsRunning(remaining > 0);
+                } else {
+                    setTimeLeft(data.timeLeft || 4 * 3600);
+                    setIsRunning(false);
+                    endTimeRef.current = null;
+                }
+            } catch (e) {
+                console.error("Failed to parse timer state");
+            }
+        }
+        setIsPersistedLoaded(true);
+    }, [roomCode]);
+
+    // Save Timer State to LocalStorage
+    useEffect(() => {
+        if (!isPersistedLoaded) return;
+        const storageKey = `lks_timer_${roomCode || 'global'}`;
+
+        const stateToSave = {
+            timeLeft,
+            initialTime,
+            isRunning,
+            endTime: endTimeRef.current,
+            isConfiguring
+        };
+        localStorage.setItem(storageKey, JSON.stringify(stateToSave));
+    }, [roomCode, isPersistedLoaded, timeLeft, initialTime, isRunning, isConfiguring]);
+
     // Timer behavior
     useEffect(() => {
-        if (isRunning && timeLeft > 0) {
+        if (isRunning) {
+            if (!endTimeRef.current) {
+                // If starting fresh (or resuming from pause without endTime)
+                endTimeRef.current = Date.now() + (timeLeft * 1000);
+            }
+
             timerRef.current = setInterval(() => {
-                setTimeLeft((prev) => {
-                    if (prev <= 1) {
-                        setIsRunning(false);
-                        return 0;
-                    }
-                    return prev - 1;
-                });
+                if (!endTimeRef.current) return;
+                const remaining = Math.max(0, Math.floor((endTimeRef.current - Date.now()) / 1000));
+
+                setTimeLeft(remaining);
+
+                if (remaining <= 0) {
+                    setIsRunning(false);
+                    endTimeRef.current = null;
+                    if (timerRef.current) clearInterval(timerRef.current);
+                }
             }, 1000);
-        } else if (timeLeft === 0) {
-            setIsRunning(false);
+        } else {
+            // Not running
             if (timerRef.current) clearInterval(timerRef.current);
         }
 
         return () => {
             if (timerRef.current) clearInterval(timerRef.current);
         };
-    }, [isRunning, timeLeft]);
+    }, [isRunning]);
 
     const handleStart = () => {
         if (timeLeft === 0) return;
+        // Recalculate end time for accurate background tracking
+        endTimeRef.current = Date.now() + (timeLeft * 1000);
         setIsRunning(true);
         setIsConfiguring(false);
     };
 
     const handlePause = () => {
         setIsRunning(false);
+        // We pause, so we clear endTime to freeze timeLeft
+        endTimeRef.current = null;
     };
 
     const handleReset = () => {
         setIsRunning(false);
         setTimeLeft(initialTime);
+        endTimeRef.current = null;
     };
 
     const handleApplyConfig = () => {
@@ -126,7 +184,9 @@ export default function LKSCountdownPage() {
         if (totalSeconds === 0) return;
         setInitialTime(totalSeconds);
         setTimeLeft(totalSeconds);
+        setIsRunning(false);
         setIsConfiguring(false);
+        endTimeRef.current = null;
     };
 
     const formatTime = (time: number) => {
