@@ -53,7 +53,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     // If we already found a user from cache, we know they're logged in but profile
     // still needs loading. If no cached user, we can mark isLoaded true immediately.
-    const [isLoaded, setIsLoaded] = useState(!cachedUser);
+    const [isLoaded, setIsLoaded] = useState(!!cachedUser); // trust cache immediately for instant UI
 
     const isFetchingProfile = useRef(false);
 

@@ -31,6 +31,7 @@ export default function AdminRoomDetailPage() {
     const [isTimerModalOpen, setIsTimerModalOpen] = useState(false);
     const [timerHours, setTimerHours] = useState("1");
     const [timerMinutes, setTimerMinutes] = useState("30");
+    const [timerSeconds, setTimerSeconds] = useState("0");
 
     // Check localStorage for this room's timer
     const checkTimer = useCallback((roomCode?: string) => {
@@ -103,33 +104,28 @@ export default function AdminRoomDetailPage() {
         if (!room) return;
         const hours = parseInt(timerHours) || 0;
         const minutes = parseInt(timerMinutes) || 0;
-        const totalSeconds = (hours * 3600) + (minutes * 60);
+        const secs = parseInt(timerSeconds) || 0;
+        const totalSeconds = (hours * 3600) + (minutes * 60) + secs;
         if (totalSeconds <= 0) return toast.error("Please set a valid duration");
 
-        // Save timer to localStorage so countdown page picks it up
+        // Save to localStorage — countdown page reads this key
         const timerKey = `lks_timer_${room.room_code}`;
-        const timerData = {
-            durationSeconds: totalSeconds,
+        localStorage.setItem(timerKey, JSON.stringify({
+            timeLeft: totalSeconds,
+            initialTime: totalSeconds,
             isRunning: false,
-            endTime: null
-        };
-        localStorage.setItem(timerKey, JSON.stringify(timerData));
+            endTime: null,
+            isConfiguring: false,
+            durationSeconds: totalSeconds
+        }));
         setHasTimer(true);
         setIsTimerModalOpen(false);
-        toast.success(`Timer set to ${hours}h ${minutes}m`);
+        toast.success(`Timer set: ${hours}h ${minutes}m ${secs}s`);
     };
 
-    const handleStart = async () => {
+    const handleStart = () => {
         if (!canStart || !room) return;
-        setIsStarting(true);
-        const { error } = await supabase.from('lks_rooms').update({ is_active: true }).eq('id', roomId);
-        if (error) {
-            toast.error("Failed to start simulation");
-            setIsStarting(false);
-            return;
-        }
-        toast.success("Simulation started! Redirecting to Projection...");
-        // Redirect to projection screen where simulation runs
+        // Just navigate to projection — Play button there will set is_active and start timer
         window.location.href = `/admin/countdown?room=${room.room_code}`;
     };
 
@@ -356,28 +352,22 @@ export default function AdminRoomDetailPage() {
                     </DialogHeader>
                     <div className="space-y-4 py-2">
                         <p className="text-sm text-muted-foreground font-mono">Define the simulation duration. The timer starts automatically when you click <span className="text-primary font-bold">Start</span>.</p>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-3 gap-4">
                             <div className="space-y-1">
                                 <label className="text-xs uppercase font-mono tracking-widest text-primary">Hours</label>
-                                <Input
-                                    type="number" min="0" max="12"
-                                    value={timerHours}
-                                    onChange={e => setTimerHours(e.target.value)}
-                                    className="bg-black/50 border-primary/30 font-mono text-center text-xl"
-                                />
+                                <Input type="number" min="0" max="12" value={timerHours} onChange={e => setTimerHours(e.target.value)} className="bg-black/50 border-primary/30 font-mono text-center text-xl" />
                             </div>
                             <div className="space-y-1">
                                 <label className="text-xs uppercase font-mono tracking-widest text-primary">Minutes</label>
-                                <Input
-                                    type="number" min="0" max="59"
-                                    value={timerMinutes}
-                                    onChange={e => setTimerMinutes(e.target.value)}
-                                    className="bg-black/50 border-primary/30 font-mono text-center text-xl"
-                                />
+                                <Input type="number" min="0" max="59" value={timerMinutes} onChange={e => setTimerMinutes(e.target.value)} className="bg-black/50 border-primary/30 font-mono text-center text-xl" />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs uppercase font-mono tracking-widest text-primary">Seconds</label>
+                                <Input type="number" min="0" max="59" value={timerSeconds} onChange={e => setTimerSeconds(e.target.value)} className="bg-black/50 border-primary/30 font-mono text-center text-xl" />
                             </div>
                         </div>
                         <div className="text-center text-2xl font-black font-mono text-white py-2">
-                            {String(parseInt(timerHours) || 0).padStart(2, '0')}:{String(parseInt(timerMinutes) || 0).padStart(2, '0')}:00
+                            {String(parseInt(timerHours) || 0).padStart(2, '0')}:{String(parseInt(timerMinutes) || 0).padStart(2, '0')}:{String(parseInt(timerSeconds) || 0).padStart(2, '0')}
                         </div>
                     </div>
                     <DialogFooter>

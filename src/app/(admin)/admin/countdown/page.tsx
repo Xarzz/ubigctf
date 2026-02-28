@@ -23,6 +23,7 @@ export default function LKSCountdownPage() {
     // Scoreboard logic
     const [roomCode, setRoomCode] = useState<string | null>(null);
     const [roomId, setRoomId] = useState<string | null>(null);
+    const [roomDbId, setRoomDbId] = useState<string | null>(null);
     const [scoreboard, setScoreboard] = useState<any[]>([]);
     const [isPersistedLoaded, setIsPersistedLoaded] = useState(false);
 
@@ -35,7 +36,10 @@ export default function LKSCountdownPage() {
                 setRoomCode(rCode);
                 // Fetch room ID to query scoreboard view
                 supabase.from('lks_rooms').select('id').eq('room_code', rCode).single().then(({ data }) => {
-                    if (data) setRoomId(data.id);
+                    if (data) {
+                        setRoomId(data.id);
+                        setRoomDbId(data.id);
+                    }
                 });
             }
         }
@@ -159,12 +163,17 @@ export default function LKSCountdownPage() {
         };
     }, [isRunning]);
 
-    const handleStart = () => {
+    const handleStart = async () => {
         if (timeLeft === 0) return;
-        // Recalculate end time for accurate background tracking
         endTimeRef.current = Date.now() + (timeLeft * 1000);
         setIsRunning(true);
         setIsConfiguring(false);
+        // Set room as active in DB so challenges become solvable for participants
+        if (roomDbId) {
+            await supabase.from('lks_rooms').update({ is_active: true }).eq('id', roomDbId).then(({ error }) => {
+                if (error) console.warn("Could not set room active:", error.message);
+            });
+        }
     };
 
     const handlePause = () => {

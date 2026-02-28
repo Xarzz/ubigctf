@@ -184,15 +184,9 @@ export default function AdminLKSDashboard() {
                                         <Lock className="w-3 h-3" /> Code: <span className="font-bold">{room.room_code}</span>
                                     </p>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs uppercase font-mono tracking-widest text-muted-foreground">{room.is_active ? 'Online' : 'Offline'}</span>
-                                    <input
-                                        type="checkbox"
-                                        checked={room.is_active}
-                                        onChange={() => handleToggleActive(room.id, room.is_active)}
-                                        className="w-12 h-6 rounded-full appearance-none bg-black/50 border border-primary/30 checked:bg-primary checked:border-primary transition-colors cursor-pointer relative checked:before:translate-x-6 before:content-[''] before:absolute before:top-[2px] before:left-[2px] before:w-5 before:h-5 before:bg-white before:rounded-full before:transition-transform shadow-[inset_0_0_10px_rgba(239,68,68,0.2)]"
-                                    />
-                                </div>
+                                <span className={`text-xs uppercase font-mono tracking-widest px-2 py-1 rounded-full border ${room.is_active ? 'bg-green-500/10 text-green-400 border-green-500/30' : 'bg-zinc-800 text-zinc-500 border-zinc-700'}`}>
+                                    {room.is_active ? 'LIVE' : 'STANDBY'}
+                                </span>
                             </div>
 
                             <div className="flex gap-2 mt-auto pt-4 border-t border-white/5 z-10">

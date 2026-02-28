@@ -47,9 +47,10 @@ const getDifficultyColor = (difficulty: string) => {
 interface LKSChallengeBoardProps {
     roomId: string;
     roomCode: string;
+    roomIsActive?: boolean;
 }
 
-export function LKSChallengeBoard({ roomId, roomCode }: LKSChallengeBoardProps) {
+export function LKSChallengeBoard({ roomId, roomCode, roomIsActive = false }: LKSChallengeBoardProps) {
     const { user, isLoaded } = useUser();
     const router = useRouter();
 
@@ -169,7 +170,14 @@ export function LKSChallengeBoard({ roomId, roomCode }: LKSChallengeBoardProps) 
 
     const handleSubmitFlag = async () => {
         if (!selectedChallenge || !user || isSubmittingFlag) return;
+        if (!roomIsActive) {
+            toast.warning("Simulation hasn't started yet. Wait for the admin to begin.");
+            return;
+        }
         setIsSubmittingFlag(true);
+
+        // Safety timeout — never leave button stuck
+        const timeout = setTimeout(() => setIsSubmittingFlag(false), 10000);
 
         const cleanInput = flagInput.trim();
         const cleanDbFlag = (selectedChallenge.flag || "").trim();
@@ -204,9 +212,10 @@ export function LKSChallengeBoard({ roomId, roomCode }: LKSChallengeBoardProps) 
             }
         } catch (error: any) {
             console.error("Submission Error:", error);
-            toast.error(error?.message || "Telemetry error: Could not verify flag.");
+            toast.error(error?.message || "Could not verify flag. Please try again.");
             setFlagInput("");
         } finally {
+            clearTimeout(timeout);
             setIsSubmittingFlag(false);
         }
     };

@@ -16,7 +16,7 @@ export default function LKSJoinPage() {
     const [roomCode, setRoomCode] = useState("");
     const [isJoining, setIsJoining] = useState(false);
 
-    // Show loading until auth is fully resolved to avoid false redirect loop
+    // Wait for auth to resolve before redirecting
     if (!isLoaded) {
         return (
             <div className="flex-1 flex items-center justify-center py-24">
@@ -28,7 +28,7 @@ export default function LKSJoinPage() {
         );
     }
 
-    if (isLoaded && !user) {
+    if (!user) {
         router.push("/login?redirect=/lks");
         return null;
     }
@@ -36,54 +36,39 @@ export default function LKSJoinPage() {
     const handleJoin = async (e: React.FormEvent) => {
         e.preventDefault();
         const code = roomCode.trim().toUpperCase();
-
-        if (!code) {
-            toast.error("Please enter a Room Code");
-            return;
-        }
-
+        if (!code) return toast.error("Please enter a Room Code");
         if (!user) return;
 
         setIsJoining(true);
-
         try {
-            // 1. Check if room exists and is active
+            // Check if room exists (allow joining even if not active yet — user waits inside)
             const { data: room, error: roomErr } = await supabase
                 .from('lks_rooms')
-                .select('id, is_active')
+                .select('id, is_active, room_code')
                 .eq('room_code', code)
-                .single();
+                .maybeSingle();
 
             if (roomErr || !room) {
-                toast.error("Invalid Room Code. Mission aborted.");
+                toast.error("Invalid Room Code. Please check and try again.");
                 setIsJoining(false);
                 return;
             }
 
-            if (!room.is_active) {
-                toast.warning("Room is not active yet. The administrator hasn't started the simulation.");
-                setIsJoining(false);
-                return;
-            }
-
-            // 2. Register participant (ignore error if already joined, assuming RLS allows or we use Upsert policy)
-            // But since we didn't setup an upsert in SQL, we can just try to insert, if it fails due to unique constraint, we just ignore it.
+            // Register participant (idempotent — ignore duplicate)
             const { error: partErr } = await supabase
                 .from('lks_participants')
                 .insert([{ room_id: room.id, user_id: user.id }]);
 
-            if (partErr && partErr.code !== '23505') { // 23505 is typical postgres unique violation
-                console.error("Participant registration error:", partErr);
-                // We don't fail just because of this, they might already be in.
+            if (partErr && partErr.code !== '23505') {
+                console.warn("Participant insert:", partErr.message);
+                // non-fatal — they may already be registered
             }
 
-            // 3. Redirect to room
-            toast.success("Connection Established. Entering Simulation...");
+            toast.success(room.is_active ? "Joined! Entering simulation..." : "Joined! Waiting for admin to start...");
             router.push(`/lks/${code}`);
-
         } catch (error) {
             console.error("Join error:", error);
-            toast.error("A network disruption occurred. Try again.");
+            toast.error("Network error. Please try again.");
             setIsJoining(false);
         }
     };
@@ -98,7 +83,7 @@ export default function LKSJoinPage() {
                     LKS <span className="text-primary">Simulation</span>
                 </h1>
                 <p className="text-muted-foreground font-mono text-sm max-w-sm mt-2">
-                    <HackerText text="Enter authorization code to join an isolated CTF environment." speed={20} delay={300} />
+                    <HackerText text="Enter access code to join a simulation room." speed={20} delay={300} />
                 </p>
             </div>
 
@@ -121,23 +106,18 @@ export default function LKSJoinPage() {
 
                     <Button
                         type="submit"
-                        disabled={isJoining || !roomCode.trim() || !user}
+                        disabled={isJoining || !roomCode.trim()}
                         className="w-full h-14 bg-primary text-white hover:bg-primary/90 font-bold tracking-widest uppercase shadow-[0_4px_14px_0_rgba(239,68,68,0.3)] hover:shadow-[0_6px_20px_rgba(239,68,68,0.5)] transition-all flex items-center justify-center gap-2 text-lg"
                     >
                         {isJoining ? (
-                            <>
-                                <Loader2 className="w-5 h-5 animate-spin" /> Joining Room...
-                            </>
+                            <><Loader2 className="w-5 h-5 animate-spin" /> Joining Room...</>
                         ) : (
-                            <>
-                                <LogIn className="w-5 h-5" /> Join Room
-                            </>
+                            <><LogIn className="w-5 h-5" /> Join Room</>
                         )}
                     </Button>
                 </form>
             </div>
 
-            {/* Ambient Background Glow */}
             <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] pointer-events-none z-[-1]" />
         </div>
     );
