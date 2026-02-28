@@ -404,7 +404,7 @@ export default function AdminChallengesPage() {
                     <table className="w-full text-sm text-left relative">
                         <thead className="text-xs uppercase bg-black/50 text-muted-foreground border-b border-white/5 font-mono">
                             <tr>
-                                <th className="px-6 py-4 font-bold tracking-widest">Target Title</th>
+                                <th className="px-6 py-4 font-bold tracking-widest">Title</th>
                                 <th className="px-6 py-4 font-bold tracking-widest">Category</th>
                                 <th className="px-6 py-4 font-bold tracking-widest">Difficulty</th>
                                 <th className="px-6 py-4 font-bold tracking-widest">Points</th>

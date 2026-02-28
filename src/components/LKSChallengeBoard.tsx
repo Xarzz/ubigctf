@@ -463,13 +463,12 @@ export function LKSChallengeBoard({ roomId, roomCode }: LKSChallengeBoardProps) 
                                 </div>
                             </div>
 
-                            <DialogFooter className="shrink-0 p-6 pt-4 sm:justify-between border-t border-white/10 bg-black/40">
-                                <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="hover:bg-red-500/10 hover:text-red-400">
-                                    {selectedChallenge.solved ? "Close" : "Abort Mission"}
-                                </Button>
-                                {!selectedChallenge.solved && (
+                            <DialogFooter className="shrink-0 p-6 pt-4 sm:justify-end border-t border-white/10 bg-black/40">
+                                {selectedChallenge.solved ? (
+                                    <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="hover:bg-white/5">Close</Button>
+                                ) : (
                                     <Button type="button" disabled={isSubmittingFlag} onClick={handleSubmitFlag} className="bg-primary text-white hover:bg-primary/90 shadow-[0_0_15px_rgba(239,68,68,0.4)] font-bold">
-                                        {isSubmittingFlag ? "Transmitting..." : "Execute Target"}
+                                        {isSubmittingFlag ? "Submitting..." : "Submit"}
                                     </Button>
                                 )}
                             </DialogFooter>

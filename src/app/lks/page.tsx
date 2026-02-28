@@ -16,6 +16,18 @@ export default function LKSJoinPage() {
     const [roomCode, setRoomCode] = useState("");
     const [isJoining, setIsJoining] = useState(false);
 
+    // Show loading until auth is fully resolved to avoid false redirect loop
+    if (!isLoaded) {
+        return (
+            <div className="flex-1 flex items-center justify-center py-24">
+                <div className="flex items-center gap-3 text-primary font-mono text-sm tracking-widest animate-pulse">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Checking session...
+                </div>
+            </div>
+        );
+    }
+
     if (isLoaded && !user) {
         router.push("/login?redirect=/lks");
         return null;
@@ -49,7 +61,7 @@ export default function LKSJoinPage() {
             }
 
             if (!room.is_active) {
-                toast.error("This Simulation Room is currently offline or hasn't started yet.");
+                toast.warning("Room is not active yet. The administrator hasn't started the simulation.");
                 setIsJoining(false);
                 return;
             }
@@ -114,7 +126,7 @@ export default function LKSJoinPage() {
                     >
                         {isJoining ? (
                             <>
-                                <Loader2 className="w-5 h-5 animate-spin" /> Authenticating...
+                                <Loader2 className="w-5 h-5 animate-spin" /> Joining Room...
                             </>
                         ) : (
                             <>
