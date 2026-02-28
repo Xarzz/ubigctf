@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/hooks/useUser";
-import { ShieldAlert, Plus, TerminalSquare, Search, Lock, MonitorPlay, Trash2, CheckCircle, Flag } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ShieldAlert, Plus, TerminalSquare, Search, Lock, MonitorPlay, Trash2, CheckCircle, Flag, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -12,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 
 export default function AdminLKSDashboard() {
     const { user } = useUser();
+    const router = useRouter();
     const [rooms, setRooms] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -178,6 +180,9 @@ export default function AdminLKSDashboard() {
                             </div>
 
                             <div className="flex gap-2 mt-auto pt-4 border-t border-white/5 z-10">
+                                <Button size="sm" variant="outline" onClick={() => router.push(`/admin/lks/${room.id}`)} className="flex-1 hover:bg-white/10 hover:text-white border-white/10">
+                                    <Eye className="w-4 h-4 mr-2" /> View Room
+                                </Button>
                                 <Button size="sm" variant="outline" onClick={() => openSetup(room)} className="flex-1 hover:bg-primary/20 hover:text-white border-white/10 hover:border-primary/30">
                                     <Flag className="w-4 h-4 mr-2" /> Setup
                                 </Button>
@@ -199,7 +204,7 @@ export default function AdminLKSDashboard() {
                 <DialogContent className="sm:max-w-md bg-black/95 border-primary/20 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
                     <DialogHeader>
                         <DialogTitle className="text-white text-xl font-mono uppercase tracking-widest flex items-center gap-2">
-                            <Plus className="w-5 h-5 text-primary" /> Initialize Room
+                            <Plus className="w-5 h-5 text-primary" /> Create Room
                         </DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
@@ -214,7 +219,7 @@ export default function AdminLKSDashboard() {
                     </div>
                     <DialogFooter>
                         <Button variant="ghost" onClick={() => setIsCreateOpen(false)} className="hover:text-red-400">Cancel</Button>
-                        <Button onClick={handleCreateRoom} className="bg-primary text-white hover:bg-primary/90 font-bold">Deploy Room</Button>
+                        <Button onClick={handleCreateRoom} className="bg-primary text-white hover:bg-primary/90 font-bold">Create Room</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

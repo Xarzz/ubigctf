@@ -251,7 +251,7 @@ export default function MyChallengesPage() {
                     <div>
                         <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
                             <Flag className="w-8 h-8 text-primary drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
-                            MY <span className="text-primary font-mono tracking-widest pl-2">MISSIONS</span>
+                            MY <span className="text-primary font-mono tracking-widest pl-2">CHALLENGES</span>
                         </h1>
                         <p className="text-muted-foreground font-mono mt-1 text-sm">Create, deploy, and manage your contributed challenges.</p>
                     </div>
@@ -270,14 +270,14 @@ export default function MyChallengesPage() {
                         <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
                             <DialogTrigger asChild>
                                 <Button className="font-bold gap-2 bg-primary hover:bg-primary/80 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)]">
-                                    <Plus className="w-4 h-4" /> Deploy New
+                                    <Plus className="w-4 h-4" /> Create New
                                 </Button>
                             </DialogTrigger>
                             <DialogContent className="bg-black/95 border-border/50 text-slate-200 border-t-2 border-t-primary shadow-[0_0_50px_rgba(239,68,68,0.2)] max-w-2xl w-[95vw] lg:w-full max-h-[90vh] flex flex-col p-0 overflow-hidden sm:rounded-2xl">
                                 <form onSubmit={handleAddSubmit} className="flex flex-col h-full max-h-[90vh] overflow-hidden">
                                     <DialogHeader className="shrink-0 p-6 pb-4 border-b border-white/10 bg-black/40">
                                         <DialogTitle className="text-2xl font-black font-mono text-white flex items-center gap-2">
-                                            <Target className="w-6 h-6 text-primary" /> NEW MISSION TARGET
+                                            <Target className="w-6 h-6 text-primary" /> NEW CHALLENGE
                                         </DialogTitle>
                                         <p className="text-sm text-muted-foreground font-mono mt-1">Configure mission parameters. Scroll down for extra settings.</p>
                                     </DialogHeader>
@@ -289,7 +289,7 @@ export default function MyChallengesPage() {
                                                 <Terminal className="w-4 h-4" /> Core Parameters
                                             </h3>
                                             <div className="space-y-2">
-                                                <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Target Name</label>
+                                                <label className="text-xs font-mono font-bold uppercase text-muted-foreground">Title</label>
                                                 <Input required placeholder="E.g. SQLi Vulnerability" className="bg-black/50 border-white/10" value={newChallenge.title} onChange={e => setNewChallenge({ ...newChallenge, title: e.target.value })} />
                                             </div>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -387,7 +387,7 @@ export default function MyChallengesPage() {
                                     <DialogFooter className="p-6 pt-4 sm:justify-end gap-2 border-t border-white/10 bg-black/40 shrink-0">
                                         <Button type="button" variant="ghost" className="hover:bg-white/5" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
                                         <Button type="submit" disabled={isSubmitting} className="font-bold bg-primary hover:bg-primary/80 shadow-[0_0_15px_rgba(239,68,68,0.4)]">
-                                            {isSubmitting ? "Deploying..." : "Launch Target"}
+                                            {isSubmitting ? "Creating..." : "Create Challenge"}
                                         </Button>
                                     </DialogFooter>
                                 </form>

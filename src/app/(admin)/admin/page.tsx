@@ -40,7 +40,7 @@ async function DashboardMetrics() {
             <div className="bg-card/50 backdrop-blur-md border border-border/40 p-6 rounded-2xl shadow-[0_10px_30px_-15px_rgba(0,0,0,0.8)] relative overflow-hidden group hover:border-white/20 transition-all">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-[40px] group-hover:bg-primary/20 transition-all -translate-y-10 translate-x-10" />
                 <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-muted-foreground uppercase font-semibold text-xs tracking-wider">Active Hackers</h3>
+                    <h3 className="text-muted-foreground uppercase font-semibold text-xs tracking-wider">Players</h3>
                     <div className="p-2 bg-secondary/50 rounded-lg">
                         <Users className="w-4 h-4 text-white" />
                     </div>
@@ -54,7 +54,7 @@ async function DashboardMetrics() {
             <div className="bg-card/50 backdrop-blur-md border border-border/40 p-6 rounded-2xl shadow-[0_10px_30px_-15px_rgba(0,0,0,0.8)] relative overflow-hidden group hover:border-white/20 transition-all">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-[40px] group-hover:bg-primary/20 transition-all -translate-y-10 translate-x-10" />
                 <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-muted-foreground uppercase font-semibold text-xs tracking-wider">Mission Targets</h3>
+                    <h3 className="text-muted-foreground uppercase font-semibold text-xs tracking-wider">Challenges Available</h3>
                     <div className="p-2 bg-secondary/50 rounded-lg">
                         <Target className="w-4 h-4 text-primary" />
                     </div>

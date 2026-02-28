@@ -118,7 +118,7 @@ export default function LKSJoinPage() {
                             </>
                         ) : (
                             <>
-                                <LogIn className="w-5 h-5" /> Initialize Connection
+                                <LogIn className="w-5 h-5" /> Join Room
                             </>
                         )}
                     </Button>

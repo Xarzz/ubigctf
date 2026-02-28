@@ -110,7 +110,7 @@ export function AnalyticsDashboard() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-black/40 p-4 border border-white/10 rounded-xl backdrop-blur-md shadow-[0_5px_15px_-5px_rgba(0,0,0,0.5)] z-20 relative">
                 <div className="flex items-center gap-2 text-muted-foreground font-mono text-sm uppercase">
                     <Filter className="w-4 h-4 text-primary" />
-                    Telemetric Timeframe
+                    Filters
                 </div>
                 <div className="flex flex-wrap gap-2">
                     {(["all", "year", "month", "week", "today"] as const).map((t) => {
@@ -145,7 +145,7 @@ export function AnalyticsDashboard() {
                     <CardHeader className="pb-2">
                         <CardTitle className="text-xl font-bold flex items-center gap-2 text-white">
                             <Target className="w-5 h-5 text-primary" />
-                            Mission Heatmap
+                            Challenges Stats
                         </CardTitle>
                         <p className="text-xs text-muted-foreground font-mono">Most attempted vs solved targets</p>
                     </CardHeader>
@@ -190,7 +190,7 @@ export function AnalyticsDashboard() {
                     <CardHeader className="pb-2">
                         <CardTitle className="text-xl font-bold flex items-center gap-2 text-white">
                             <Trophy className="w-5 h-5 text-yellow-500" />
-                            Elite Operators
+                            Top Scorers
                         </CardTitle>
                         <p className="text-xs text-muted-foreground font-mono">Highest scoring players in timeframe</p>
                     </CardHeader>
@@ -227,7 +227,7 @@ export function AnalyticsDashboard() {
                     <CardHeader className="pb-2 border-b border-white/5">
                         <CardTitle className="text-xl font-bold flex items-center gap-2 text-white">
                             <Clock className="w-5 h-5 text-primary" />
-                            Live Telemetry Feed
+                            Recent Submissions
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-4">
