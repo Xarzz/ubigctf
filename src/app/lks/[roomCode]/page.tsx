@@ -6,8 +6,9 @@ import { LKSChallengeBoard } from "@/components/LKSChallengeBoard";
 // Disables static generation, forces to always fetch current room state
 export const revalidate = 0;
 
-export default async function LKSRoomPage({ params }: { params: { roomCode: string } }) {
-    const code = params.roomCode.toUpperCase();
+export default async function LKSRoomPage({ params }: { params: Promise<{ roomCode: string }> }) {
+    const resolvedParams = await params;
+    const code = resolvedParams.roomCode.toUpperCase();
 
     // Fetch basic room details
     const { data: room, error } = await supabase
