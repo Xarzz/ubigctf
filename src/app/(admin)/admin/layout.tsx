@@ -66,9 +66,9 @@ export default function AdminLayout({
                         <Users className="w-5 h-5" />
                         Player Intel
                     </Link>
-                    <Link href="/admin/countdown" className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${pathname === '/admin/countdown' ? 'bg-primary/10 text-primary border border-primary/30 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'text-muted-foreground hover:bg-white/5 hover:text-white'}`}>
+                    <Link href="/admin/lks" className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${pathname.startsWith('/admin/lks') ? 'bg-primary/10 text-primary border border-primary/30 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'text-muted-foreground hover:bg-white/5 hover:text-white'}`}>
                         <Timer className="w-5 h-5" />
-                        LKS Timer
+                        LKS Control Panel
                     </Link>
                 </nav>
 
