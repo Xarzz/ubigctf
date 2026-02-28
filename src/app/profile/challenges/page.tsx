@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { LKSWarningBanner } from "@/components/LKSWarningBanner";
 import { supabase } from "@/lib/supabase";
 import { Plus, Edit2, Trash2, Search, Target, CheckCircle2, XCircle, UploadCloud, X, Terminal, Shield, Flag, TerminalSquare, ExternalLink, Download, HelpCircle, Lock as LockIcon, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -246,6 +247,7 @@ export default function MyChallengesPage() {
 
     return (
         <div className="container mx-auto px-4 max-w-7xl pt-10 pb-20">
+            <LKSWarningBanner context="challenge" />
             <div className="space-y-8 animate-in slide-in-from-bottom-8 fade-in-50 duration-700">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>

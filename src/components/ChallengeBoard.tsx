@@ -13,6 +13,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useUser } from "@/hooks/useUser";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
+import { useLKSSession } from "@/hooks/useLKSSession";
+import { LKSWarningBanner } from "@/components/LKSWarningBanner";
 
 const getCategoryIcon = (category: string) => {
     switch (category) {
@@ -47,6 +49,7 @@ const getDifficultyColor = (difficulty: string) => {
 export function ChallengeBoard({ initialChallenges = [] }: { initialChallenges?: any[] }) {
     const { user, isLoaded } = useUser();
     const router = useRouter();
+    const { isInLKS, isActive: isLKSActive } = useLKSSession();
 
     // SWR Fetchers optimized for separate parallel execution without blocking
     const fetchChallengesData = async () => {
@@ -155,6 +158,10 @@ export function ChallengeBoard({ initialChallenges = [] }: { initialChallenges?:
 
     const handleSubmitFlag = async () => {
         if (!selectedChallenge || !user || isSubmittingFlag) return;
+        if (isLKSActive) {
+            toast.warning("LKS simulation is active. Regular challenge submissions are locked.");
+            return;
+        }
         setIsSubmittingFlag(true);
 
         const cleanInput = flagInput.trim();
@@ -228,6 +235,7 @@ export function ChallengeBoard({ initialChallenges = [] }: { initialChallenges?:
     // Let's modify the condition so we don't show "Loading Intel" if we have challenges ready
     return (
         <div className="space-y-12 pb-20">
+            <LKSWarningBanner context="submit" />
             {(isLoadingChallenges && challengesBase.length === 0) ? (
                 <div className="flex flex-col items-center justify-center py-20 animate-in fade-in duration-500">
                     <TerminalSquare className="w-12 h-12 text-primary/30 mb-4 animate-pulse duration-1000" />

@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 import { NavBar } from "@/components/navbar";
 import { UserProvider } from "@/hooks/useUser";
+import { LKSSessionProvider } from "@/hooks/useLKSSession";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,24 +32,26 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground min-h-screen flex flex-col`}
       >
         <UserProvider>
-          {/* Global Dark Grid Background */}
-          <div className="fixed inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none z-[-2]"></div>
-          <div className="fixed inset-0 bg-gradient-to-b from-black/20 via-background to-background pointer-events-none z-[-1]" />
+          <LKSSessionProvider>
+            {/* Global Dark Grid Background */}
+            <div className="fixed inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none z-[-2]"></div>
+            <div className="fixed inset-0 bg-gradient-to-b from-black/20 via-background to-background pointer-events-none z-[-1]" />
 
-          <NavBar />
+            <NavBar />
 
-          <main className="flex-1 relative z-10 w-full flex flex-col">
-            {children}
-          </main>
+            <main className="flex-1 relative z-10 w-full flex flex-col">
+              {children}
+            </main>
 
-          <footer className="border-t border-border/40 bg-background/95 backdrop-blur z-10 mt-auto">
-            <div className="container mx-auto flex h-16 items-center px-4 justify-center">
-              <p className="text-sm text-muted-foreground">
-                © {new Date().getFullYear()} UbigCTF
-              </p>
-            </div>
-          </footer>
-          <Toaster />
+            <footer className="border-t border-border/40 bg-background/95 backdrop-blur z-10 mt-auto">
+              <div className="container mx-auto flex h-16 items-center px-4 justify-center">
+                <p className="text-sm text-muted-foreground">
+                  © {new Date().getFullYear()} UbigCTF
+                </p>
+              </div>
+            </footer>
+            <Toaster />
+          </LKSSessionProvider>
         </UserProvider>
       </body>
     </html>
