@@ -14,9 +14,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import useSWR from "swr";
 import imageCompression from 'browser-image-compression';
 import { useUser } from "@/hooks/useUser";
+import { useLKSSession } from "@/hooks/useLKSSession";
 
 export default function MyChallengesPage() {
     const { user, profile, isLoaded } = useUser();
+    const { isActive: isLKSActive } = useLKSSession();
 
     // Extract data using SWR for automatic updates and caching
     const fetchChallenges = async () => {
@@ -271,7 +273,11 @@ export default function MyChallengesPage() {
 
                         <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
                             <DialogTrigger asChild>
-                                <Button className="font-bold gap-2 bg-primary hover:bg-primary/80 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)]">
+                                <Button
+                                    disabled={isLKSActive}
+                                    title={isLKSActive ? "Locked during active LKS simulation" : undefined}
+                                    className="font-bold gap-2 bg-primary hover:bg-primary/80 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)] disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
                                     <Plus className="w-4 h-4" /> Create New
                                 </Button>
                             </DialogTrigger>

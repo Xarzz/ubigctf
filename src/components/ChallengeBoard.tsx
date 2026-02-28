@@ -148,6 +148,10 @@ export function ChallengeBoard({ initialChallenges = [] }: { initialChallenges?:
     };
 
     const handleOpenDialog = (c: any) => {
+        if (isLKSActive) {
+            toast.warning("Challenge access is locked during the LKS simulation. Go to your simulation room.");
+            return;
+        }
         setSelectedChallenge(c);
         setFlagInput("");
         setShowHints(0);

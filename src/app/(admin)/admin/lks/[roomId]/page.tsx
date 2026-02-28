@@ -61,6 +61,9 @@ export default function AdminRoomDetailPage() {
     useEffect(() => {
         if (!roomId) return;
         fetchRoomData();
+        // Poll every 5s so participant list updates in real-time without refresh
+        const interval = setInterval(fetchRoomData, 5000);
+        return () => clearInterval(interval);
     }, [roomId]);
 
     useEffect(() => {
@@ -68,7 +71,6 @@ export default function AdminRoomDetailPage() {
     }, [room]);
 
     const fetchRoomData = async () => {
-        setIsLoading(true);
         try {
             const { data: roomData, error: roomError } = await supabase
                 .from('lks_rooms').select('*').eq('id', roomId).single();
@@ -79,18 +81,32 @@ export default function AdminRoomDetailPage() {
             }
             setRoom(roomData);
 
-            const { data: partData } = await supabase
-                .from('lks_participants')
-                .select('id, joined_at, profiles(username, email)')
-                .eq('room_id', roomId)
-                .order('joined_at', { ascending: true });
-            setParticipants(partData || []);
+            // Use user_id (no id column in lks_participants)
+            // Fetch scoreboard for names (view bypasses profiles RLS)
+            const [partRes, scoreRes, challRes] = await Promise.all([
+                supabase
+                    .from('lks_participants')
+                    .select('user_id, joined_at')
+                    .eq('room_id', roomId)
+                    .order('joined_at', { ascending: true }),
+                supabase
+                    .from('lks_scoreboard')
+                    .select('user_id, name')
+                    .eq('room_id', roomId),
+                supabase
+                    .from('lks_room_challenges')
+                    .select('challenge_id, challenges(title, difficulty, points, categories(name))')
+                    .eq('room_id', roomId)
+            ]);
 
-            const { data: challData } = await supabase
-                .from('lks_room_challenges')
-                .select('challenge_id, challenges(title, difficulty, points, categories(name))')
-                .eq('room_id', roomId);
-            setChallenges(challData || []);
+            // Merge participant list with names from scoreboard
+            const nameMap = new Map((scoreRes.data || []).map((s: any) => [s.user_id, s.name]));
+            const enriched = (partRes.data || []).map((p: any) => ({
+                ...p,
+                username: nameMap.get(p.user_id) || `Player ${p.user_id.slice(0, 6)}`,
+            }));
+            setParticipants(enriched);
+            setChallenges(challRes.data || []);
         } catch {
             toast.error("Failed to load room data");
         } finally {
@@ -290,14 +306,13 @@ export default function AdminRoomDetailPage() {
                 ) : (
                     <div className="divide-y divide-white/5">
                         {participants.map((p, i) => {
-                            const profile: any = Array.isArray(p.profiles) ? p.profiles[0] : p.profiles;
                             return (
-                                <div key={p.id} className="flex items-center justify-between px-5 py-3 hover:bg-white/[0.02] transition-all">
+                                <div key={p.user_id} className="flex items-center justify-between px-5 py-3 hover:bg-white/[0.02] transition-all">
                                     <div className="flex items-center gap-3">
                                         <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-black text-primary font-mono">{i + 1}</div>
                                         <div>
-                                            <p className="font-bold text-white text-sm">{profile?.username || "Unknown"}</p>
-                                            <p className="text-xs text-muted-foreground">{profile?.email || ""}</p>
+                                            <p className="font-bold text-white text-sm">{p.username}</p>
+                                            <p className="text-xs text-muted-foreground font-mono">{p.user_id.slice(0, 8)}...</p>
                                         </div>
                                     </div>
                                     <span className="text-xs font-mono text-muted-foreground">{new Date(p.joined_at).toLocaleTimeString()}</span>
