@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Terminal, UserCircle, User, LogIn, UserPlus, Phone, LogOut, Flag, ChevronDown, TerminalSquare, Target } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { useLKSSession } from "@/hooks/useLKSSession";
-import { LKSBlockedWarning } from "@/components/LKSFloatingRoom";
+import { LKSExitWarning } from "@/components/LKSExitWarning";
 import { useState } from "react";
 import {
     DropdownMenu,
@@ -211,16 +211,21 @@ export function NavBar() {
                 </div>
             </header>
 
-            {/* LKS Blocked Warning Dialog */}
-            <LKSBlockedWarning
+            {/* LKS Exit Warning — unified dialog for admin & user */}
+            <LKSExitWarning
                 isOpen={showLKSBlocked}
                 onClose={() => setShowLKSBlocked(false)}
-                onGoToRoom={() => {
+                onStay={() => setShowLKSBlocked(false)}
+                onConfirm={async () => {
                     setShowLKSBlocked(false);
-                    router.push(`/lks/${roomCode}`);
+                    await signOut();
+                    window.location.href = "/login";
                 }}
-                roomCode={roomCode || ""}
-                actionLabel={blockedAction}
+                title="Log Out?"
+                confirmLabel="Log Out"
+                message="You're in an active LKS simulation. Logging out will remove you from the session and your progress tracking will stop."
+                note="You can log back in and rejoin using the room code if needed."
+                variant="danger"
             />
         </>);
 }
