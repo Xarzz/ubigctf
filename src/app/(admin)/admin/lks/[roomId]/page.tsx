@@ -7,7 +7,8 @@ import { toast } from "sonner";
 import Link from "next/link";
 import {
     ArrowLeft, Share2, Users, Target, Clock, Play,
-    Copy, CheckCircle, Timer, AlertTriangle, Settings2
+    Copy, CheckCircle, Timer, AlertTriangle, Settings2,
+    UserX, Wifi, WifiOff, Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +26,10 @@ export default function AdminRoomDetailPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [codeCopied, setCodeCopied] = useState(false);
     const [isStarting, setIsStarting] = useState(false);
+
+    // Kick player state
+    const [kickTarget, setKickTarget] = useState<any>(null);
+    const [isKicking, setIsKicking] = useState(false);
 
     // Timer state
     const [hasTimer, setHasTimer] = useState(false);
@@ -51,7 +56,7 @@ export default function AdminRoomDetailPage() {
         }
     }, [room]);
 
-    // Re-check timer when window regains focus (user might have set it elsewhere)
+    // Re-check timer when window regains focus
     useEffect(() => {
         const onFocus = () => checkTimer();
         window.addEventListener("focus", onFocus);
@@ -61,14 +66,92 @@ export default function AdminRoomDetailPage() {
     useEffect(() => {
         if (!roomId) return;
         fetchRoomData();
-        // Poll every 5s so participant list updates in real-time without refresh
-        const interval = setInterval(fetchRoomData, 5000);
-        return () => clearInterval(interval);
     }, [roomId]);
 
     useEffect(() => {
         if (room?.room_code) checkTimer(room.room_code);
     }, [room]);
+
+    // ─── Supabase Realtime: participants table ────────────────────────────────
+    useEffect(() => {
+        if (!roomId) return;
+
+        const channel = supabase
+            .channel(`admin_room_participants_${roomId}`)
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "lks_participants",
+                    filter: `room_id=eq.${roomId}`,
+                },
+                async (payload) => {
+                    if (payload.eventType === "INSERT") {
+                        // New player joined — enrich with name from scoreboard
+                        const newPart = payload.new as any;
+                        const { data: scoreData } = await supabase
+                            .from("lks_scoreboard")
+                            .select("user_id, name")
+                            .eq("room_id", roomId)
+                            .eq("user_id", newPart.user_id)
+                            .maybeSingle();
+
+                        const enriched = {
+                            ...newPart,
+                            username: scoreData?.name || `Player ${newPart.user_id.slice(0, 6)}`,
+                        };
+                        setParticipants((prev) => {
+                            // Avoid duplicates
+                            if (prev.find((p) => p.user_id === newPart.user_id)) return prev;
+                            return [...prev, enriched].sort(
+                                (a, b) => new Date(a.joined_at).getTime() - new Date(b.joined_at).getTime()
+                            );
+                        });
+                        toast.info(`🟢 ${enriched.username} joined the room`, { duration: 3000 });
+                    } else if (payload.eventType === "DELETE") {
+                        const removed = payload.old as any;
+                        setParticipants((prev) => {
+                            const leaving = prev.find((p) => p.user_id === removed.user_id);
+                            if (leaving) {
+                                toast.info(`🔴 ${leaving.username} left the room`, { duration: 3000 });
+                            }
+                            return prev.filter((p) => p.user_id !== removed.user_id);
+                        });
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [roomId]);
+
+    // ─── Supabase Realtime: room status (LIVE / OFFLINE) ──────────────────────
+    useEffect(() => {
+        if (!roomId) return;
+
+        const channel = supabase
+            .channel(`admin_room_status_${roomId}`)
+            .on(
+                "postgres_changes",
+                {
+                    event: "UPDATE",
+                    schema: "public",
+                    table: "lks_rooms",
+                    filter: `id=eq.${roomId}`,
+                },
+                (payload) => {
+                    setRoom(payload.new);
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [roomId]);
 
     const fetchRoomData = async () => {
         try {
@@ -81,8 +164,6 @@ export default function AdminRoomDetailPage() {
             }
             setRoom(roomData);
 
-            // Use user_id (no id column in lks_participants)
-            // Fetch scoreboard for names (view bypasses profiles RLS)
             const [partRes, scoreRes, challRes] = await Promise.all([
                 supabase
                     .from('lks_participants')
@@ -99,7 +180,6 @@ export default function AdminRoomDetailPage() {
                     .eq('room_id', roomId)
             ]);
 
-            // Merge participant list with names from scoreboard
             const nameMap = new Map((scoreRes.data || []).map((s: any) => [s.user_id, s.name]));
             const enriched = (partRes.data || []).map((p: any) => ({
                 ...p,
@@ -114,6 +194,27 @@ export default function AdminRoomDetailPage() {
         }
     };
 
+    // ─── Kick Player ───────────────────────────────────────────────────────────
+    const handleKickPlayer = async () => {
+        if (!kickTarget || !roomId) return;
+        setIsKicking(true);
+        try {
+            const { error } = await supabase
+                .from("lks_participants")
+                .delete()
+                .match({ room_id: roomId, user_id: kickTarget.user_id });
+
+            if (error) throw error;
+            toast.success(`${kickTarget.username} has been kicked from the room.`);
+            setKickTarget(null);
+            // Realtime will auto-update the list
+        } catch (e: any) {
+            toast.error("Failed to kick player: " + e.message);
+        } finally {
+            setIsKicking(false);
+        }
+    };
+
     const canStart = participants.length >= 1 && hasTimer;
 
     const handleSetTimer = () => {
@@ -124,7 +225,6 @@ export default function AdminRoomDetailPage() {
         const totalSeconds = (hours * 3600) + (minutes * 60) + secs;
         if (totalSeconds <= 0) return toast.error("Please set a valid duration");
 
-        // Save to localStorage — countdown page reads this key
         const timerKey = `lks_timer_${room.room_code}`;
         localStorage.setItem(timerKey, JSON.stringify({
             timeLeft: totalSeconds,
@@ -141,7 +241,6 @@ export default function AdminRoomDetailPage() {
 
     const handleStart = () => {
         if (!canStart || !room) return;
-        // Just navigate to projection — Play button there will set is_active and start timer
         window.location.href = `/admin/countdown?room=${room.room_code}`;
     };
 
@@ -292,11 +391,16 @@ export default function AdminRoomDetailPage() {
                 </button>
             </div>
 
-            {/* Players List */}
+            {/* Players List — Realtime */}
             <div className="bg-card/30 border border-border/40 rounded-2xl overflow-hidden">
                 <div className="p-5 border-b border-white/5 flex items-center gap-2">
                     <Users className="w-5 h-5 text-primary" />
                     <h2 className="font-bold text-white text-lg">Participants</h2>
+                    {/* Realtime indicator */}
+                    <div className="flex items-center gap-1.5 ml-2 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20">
+                        <Zap className="w-3 h-3 text-green-400" />
+                        <span className="text-[10px] font-mono text-green-400 uppercase tracking-widest">Live</span>
+                    </div>
                     <Badge className="ml-auto bg-primary/20 text-primary border border-primary/30">{participants.length}</Badge>
                 </div>
                 {participants.length === 0 ? (
@@ -305,20 +409,35 @@ export default function AdminRoomDetailPage() {
                     </div>
                 ) : (
                     <div className="divide-y divide-white/5">
-                        {participants.map((p, i) => {
-                            return (
-                                <div key={p.user_id} className="flex items-center justify-between px-5 py-3 hover:bg-white/[0.02] transition-all">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-black text-primary font-mono">{i + 1}</div>
-                                        <div>
+                        {participants.map((p, i) => (
+                            <div key={p.user_id} className="flex items-center justify-between px-5 py-3 hover:bg-white/[0.02] transition-all group">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-black text-primary font-mono">{i + 1}</div>
+                                    <div>
+                                        <div className="flex items-center gap-2">
                                             <p className="font-bold text-white text-sm">{p.username}</p>
-                                            <p className="text-xs text-muted-foreground font-mono">{p.user_id.slice(0, 8)}...</p>
+                                            {/* Online status dot */}
+                                            <span className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.6)] inline-block" title="Online" />
                                         </div>
+                                        <p className="text-xs text-muted-foreground font-mono">{p.user_id.slice(0, 8)}...</p>
                                     </div>
-                                    <span className="text-xs font-mono text-muted-foreground">{new Date(p.joined_at).toLocaleTimeString()}</span>
                                 </div>
-                            );
-                        })}
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xs font-mono text-muted-foreground">{new Date(p.joined_at).toLocaleTimeString()}</span>
+                                    {/* Kick button */}
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => setKickTarget(p)}
+                                        className="opacity-0 group-hover:opacity-100 transition-opacity h-7 px-2 text-red-400 hover:bg-red-500/20 hover:text-red-400 border border-transparent hover:border-red-500/30"
+                                        title={`Kick ${p.username}`}
+                                    >
+                                        <UserX className="w-3.5 h-3.5 mr-1" />
+                                        <span className="text-xs">Kick</span>
+                                    </Button>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 )}
             </div>
@@ -356,6 +475,36 @@ export default function AdminRoomDetailPage() {
                     </div>
                 )}
             </div>
+
+            {/* Kick Confirmation Dialog */}
+            <Dialog open={!!kickTarget} onOpenChange={(open) => !open && setKickTarget(null)}>
+                <DialogContent className="sm:max-w-sm bg-black/95 border-red-500/30 shadow-[0_0_30px_rgba(239,68,68,0.3)]">
+                    <DialogHeader>
+                        <DialogTitle className="text-white text-xl font-mono uppercase tracking-widest flex items-center gap-2">
+                            <UserX className="w-5 h-5 text-red-400" /> Kick Player
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4 space-y-3">
+                        <p className="text-sm text-muted-foreground font-mono">
+                            Are you sure you want to remove <span className="text-white font-bold">{kickTarget?.username}</span> from this room?
+                        </p>
+                        <p className="text-xs text-red-400/70 font-mono bg-red-500/5 border border-red-500/20 rounded-lg px-3 py-2">
+                            ⚠ This will immediately disconnect them from the simulation. They can rejoin using the room code.
+                        </p>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setKickTarget(null)} className="hover:text-white" disabled={isKicking}>Cancel</Button>
+                        <Button
+                            onClick={handleKickPlayer}
+                            disabled={isKicking}
+                            className="bg-red-600 hover:bg-red-500 text-white font-bold shadow-[0_0_15px_rgba(239,68,68,0.4)] gap-2"
+                        >
+                            <UserX className="w-4 h-4" />
+                            {isKicking ? "Kicking..." : "Kick Player"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Set Timer Dialog */}
             <Dialog open={isTimerModalOpen} onOpenChange={setIsTimerModalOpen}>

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/hooks/useUser";
-import { Target, Clock, Loader2, Lock } from "lucide-react";
+import { Target, Clock, Loader2, Lock, ShieldOff } from "lucide-react";
 import { LKSChallengeBoard } from "@/components/LKSChallengeBoard";
+import { toast } from "sonner";
 
 export default function LKSRoomPage() {
     const params = useParams();
@@ -16,6 +17,16 @@ export default function LKSRoomPage() {
     const [room, setRoom] = useState<any>(null);
     const [isLoadingRoom, setIsLoadingRoom] = useState(true);
     const [notFound, setNotFound] = useState(false);
+    const [isKicked, setIsKicked] = useState(false);
+
+    // Keep refs to room/user for beforeunload closure
+    const roomRef = useRef<any>(null);
+    const userRef = useRef<any>(null);
+    // Flag so beforeunload doesn't fire after a kick (already removed from DB)
+    const wasKickedRef = useRef(false);
+
+    useEffect(() => { roomRef.current = room; }, [room]);
+    useEffect(() => { userRef.current = user; }, [user]);
 
     const fetchRoom = useCallback(async () => {
         if (!code) return;
@@ -33,14 +44,97 @@ export default function LKSRoomPage() {
         setIsLoadingRoom(false);
     }, [code]);
 
+    // ─── Supabase Realtime: live room status ──────────────────────────────────
     useEffect(() => {
-        fetchRoom();
-        // Poll every 4s so waiting room detects when simulation starts
-        const interval = setInterval(fetchRoom, 4000);
-        return () => clearInterval(interval);
-    }, [fetchRoom]);
+        if (!code) return;
 
-    // Auth check
+        fetchRoom();
+
+        const channel = supabase
+            .channel(`lks_room_status_${code}`)
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "lks_rooms",
+                    filter: `room_code=eq.${code}`,
+                },
+                (payload) => {
+                    if (payload.eventType === "UPDATE") {
+                        setRoom(payload.new);
+                    } else if (payload.eventType === "DELETE") {
+                        setNotFound(true);
+                        setRoom(null);
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [code, fetchRoom]);
+
+    // ─── Supabase Realtime: detect kick ───────────────────────────────────────
+    useEffect(() => {
+        if (!room?.id || !user?.id) return;
+
+        const channel = supabase
+            .channel(`lks_participant_kick_${room.id}_${user.id}`)
+            .on(
+                "postgres_changes",
+                {
+                    event: "DELETE",
+                    schema: "public",
+                    table: "lks_participants",
+                    filter: `room_id=eq.${room.id}`,
+                },
+                (payload) => {
+                    const deleted = payload.old as any;
+                    if (deleted?.user_id === user.id) {
+                        // We were kicked — mark so beforeunload doesn't double-delete
+                        wasKickedRef.current = true;
+                        setIsKicked(true);
+                        toast.error("You have been removed from this room by the admin.", {
+                            duration: 6000,
+                            id: "kicked",
+                        });
+                        // Redirect after a short delay so the user can see the message
+                        setTimeout(() => router.push("/lks"), 3000);
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [room?.id, user?.id, router]);
+
+    // ─── Auto-leave: remove participant when tab is closed ────────────────────
+    useEffect(() => {
+        const handleBeforeUnload = () => {
+            // Don't double-delete if user was already kicked
+            if (wasKickedRef.current) return;
+            const currentRoom = roomRef.current;
+            const currentUser = userRef.current;
+            if (!currentRoom?.id || !currentUser?.id) return;
+
+            const blob = new Blob(
+                [JSON.stringify({ roomId: currentRoom.id, userId: currentUser.id })],
+                { type: "application/json" }
+            );
+            navigator.sendBeacon("/api/lks/leave", blob);
+        };
+
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        return () => {
+            window.removeEventListener("beforeunload", handleBeforeUnload);
+        };
+    }, []);
+
+    // ─── Auth check ───────────────────────────────────────────────────────────
     useEffect(() => {
         if (isLoaded && !user) {
             router.push(`/login?redirect=/lks`);
@@ -58,6 +152,21 @@ export default function LKSRoomPage() {
         );
     }
 
+    // Kicked screen
+    if (isKicked) {
+        return (
+            <div className="flex-1 flex items-center justify-center py-24 text-center">
+                <div className="space-y-4">
+                    <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mx-auto">
+                        <ShieldOff className="w-8 h-8 text-red-400" />
+                    </div>
+                    <p className="text-2xl font-black text-white uppercase tracking-widest">Removed from Room</p>
+                    <p className="text-muted-foreground font-mono text-sm">You have been kicked by the administrator. Redirecting...</p>
+                </div>
+            </div>
+        );
+    }
+
     if (notFound || !room) {
         return (
             <div className="flex-1 flex items-center justify-center py-24 text-center">
@@ -69,11 +178,10 @@ export default function LKSRoomPage() {
         );
     }
 
-    // Waiting room — simulation not started yet
+    // Waiting room
     if (!room.is_active) {
         return (
             <div className="container mx-auto px-4 max-w-7xl flex-1 pb-20">
-                {/* Header */}
                 <div className="mb-6 mt-8 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border/50 pb-5 relative z-10">
                     <div>
                         <div className="flex items-center gap-3 mb-1">
@@ -91,7 +199,6 @@ export default function LKSRoomPage() {
                     </div>
                 </div>
 
-                {/* Info banner */}
                 <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-start gap-3 text-sm text-blue-300 font-mono">
                     <Lock className="w-4 h-4 mt-0.5 shrink-0 text-blue-400" />
                     <p>
@@ -100,7 +207,6 @@ export default function LKSRoomPage() {
                     </p>
                 </div>
 
-                {/* Challenge preview (locked) */}
                 <LKSChallengeBoard roomId={room.id} roomCode={room.room_code} roomIsActive={false} />
             </div>
         );

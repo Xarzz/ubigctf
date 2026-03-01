@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Plus, Edit2, Trash2, Search, Target, CheckCircle2, XCircle, UploadCloud, X, Terminal, Shield, Flag, TerminalSquare, ExternalLink, Download, HelpCircle, Lock as LockIcon, Eye } from "lucide-react";
+import { Plus, Edit2, Trash2, Search, Target, CheckCircle2, XCircle, UploadCloud, X, Terminal, Shield, Flag, TerminalSquare, ExternalLink, Download, HelpCircle, Lock as LockIcon, Eye, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -29,7 +29,10 @@ export default function AdminChallengesPage() {
         return data || [];
     };
 
-    const { data: challenges = [], mutate: mutateChallenges, isLoading } = useSWR('admin_challenges', fetchChallenges);
+    const { data: challenges = [], mutate: mutateChallenges, isLoading } = useSWR('admin_challenges', fetchChallenges, {
+        revalidateOnFocus: true,
+        revalidateOnReconnect: true,
+    });
     const { data: categories = [] } = useSWR('admin_categories', fetchCategories, {
         onSuccess: (data) => {
             if (data.length > 0 && !newChallenge.category_id) {
@@ -37,6 +40,26 @@ export default function AdminChallengesPage() {
             }
         }
     });
+
+    // ─── Supabase Realtime: auto-refresh challenges when DB changes ────────────
+    useEffect(() => {
+        const channel = supabase
+            .channel('admin_challenges_realtime')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'challenges' },
+                () => {
+                    // Silently revalidate SWR cache
+                    mutateChallenges();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const [searchQuery, setSearchQuery] = useState("");
 
@@ -241,6 +264,11 @@ export default function AdminChallengesPage() {
                     <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
                         <Target className="w-8 h-8 text-primary drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
                         CHALLENGES <span className="text-primary font-mono tracking-widest pl-2">CONTROL</span>
+                        {/* Realtime indicator */}
+                        <div className="flex items-center gap-1.5 ml-2 px-2 py-1 rounded-full bg-green-500/10 border border-green-500/20">
+                            <Zap className="w-3 h-3 text-green-400" />
+                            <span className="text-[10px] font-mono text-green-400 uppercase tracking-widest">Live</span>
+                        </div>
                     </h1>
                     <p className="text-muted-foreground font-mono mt-1 text-sm">Deploy, configure, and monitor CTF challenges</p>
                 </div>
