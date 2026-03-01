@@ -1,6 +1,6 @@
 // Server Component — fetches data at request time (no client-side loading delay)
 import { createClient } from "@supabase/supabase-js";
-import AdminChallengesClient from "@/components/admin/AdminChallengesClient";
+import AdminChallengesClient from "./AdminChallengesClient";
 
 // Server-side Supabase client (uses same anon key — no auth needed for these reads)
 const supabaseServer = createClient(

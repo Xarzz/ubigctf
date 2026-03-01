@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { supabase } from '@/lib/supabase';
 import { useUser } from '@/hooks/useUser';
 import { useRouter, usePathname } from 'next/navigation';
+import { LKSFloatingRoom } from '@/components/LKSFloatingRoom';
 
 interface LKSSessionType {
     roomCode: string | null;
@@ -36,29 +37,55 @@ export function LKSSessionProvider({ children }: { children: React.ReactNode }) 
     const [isActive, setIsActive] = useState(false);
     const [isWaiting, setIsWaiting] = useState(false);
 
-    // Countdown overlay state
+    // Countdown overlay state (when admin starts simulation from another page)
     const [showCountdown, setShowCountdown] = useState(false);
     const [countdownNum, setCountdownNum] = useState(3);
-    const [isLocked, setIsLocked] = useState(false); // nav locked during simulation
 
     const wasActiveRef = useRef(false);
     const roomCodeRef = useRef<string | null>(null);
+    const roomIdRef = useRef<string | null>(null);
 
+    // ─── Leave room: remove from participants + clear session ─────────────────
     const clearLKSSession = useCallback(() => {
         setRoomCode(null);
         setRoomId(null);
         setRoomTitle(null);
         setIsActive(false);
         setIsWaiting(false);
-        setIsLocked(false);
         wasActiveRef.current = false;
         roomCodeRef.current = null;
+        roomIdRef.current = null;
     }, []);
+
+    const handleLeaveRoom = useCallback(async () => {
+        const currentRoomId = roomIdRef.current;
+        const userId = user?.id;
+
+        clearLKSSession();
+
+        // Remove from participants — fire-and-forget
+        if (currentRoomId && userId) {
+            try {
+                const blob = new Blob(
+                    [JSON.stringify({ roomId: currentRoomId, userId })],
+                    { type: 'application/json' }
+                );
+                navigator.sendBeacon('/api/lks/leave', blob);
+            } catch {
+                // fallback direct delete
+                await supabase
+                    .from('lks_participants')
+                    .delete()
+                    .match({ room_id: currentRoomId, user_id: userId });
+            }
+        }
+
+        router.push('/lks');
+    }, [user?.id, clearLKSSession, router]);
 
     const checkLKSStatus = useCallback(async () => {
         if (!user?.id) return;
         try {
-            // Find the most recent LKS participation for this user
             const { data } = await supabase
                 .from('lks_participants')
                 .select('room_id, joined_at, lks_rooms(id, room_code, title, is_active)')
@@ -77,29 +104,26 @@ export function LKSSessionProvider({ children }: { children: React.ReactNode }) 
             setRoomId(room.id);
             setRoomTitle(room.title);
             roomCodeRef.current = room.room_code;
+            roomIdRef.current = room.id;
 
             if (room.is_active) {
                 setIsActive(true);
                 setIsWaiting(false);
 
-                // First time detecting active → trigger countdown
+                // First time detecting active → trigger countdown if not already on LKS page
                 if (!wasActiveRef.current) {
                     wasActiveRef.current = true;
                     const onLKSPage = pathname?.startsWith('/lks/');
                     if (!onLKSPage) {
                         setShowCountdown(true);
-                    } else {
-                        // Already on LKS page, just lock nav
-                        setIsLocked(true);
                     }
                 }
             } else {
                 setIsActive(false);
                 setIsWaiting(true);
                 wasActiveRef.current = false;
-                setIsLocked(false);
             }
-        } catch (e) {
+        } catch {
             // silently fail — do not clear session on transient errors
         }
     }, [user?.id, pathname, clearLKSSession]);
@@ -128,7 +152,6 @@ export function LKSSessionProvider({ children }: { children: React.ReactNode }) 
                 clearInterval(interval);
                 setTimeout(() => {
                     setShowCountdown(false);
-                    setIsLocked(true);
                     if (roomCodeRef.current) {
                         router.push(`/lks/${roomCodeRef.current}`);
                     }
@@ -139,20 +162,16 @@ export function LKSSessionProvider({ children }: { children: React.ReactNode }) 
         return () => clearInterval(interval);
     }, [showCountdown]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Navigation lock: redirect back to LKS if on wrong page during active simulation
-    useEffect(() => {
-        if (!isLocked || !roomCodeRef.current) return;
-        const onLKSPage = pathname?.startsWith(`/lks/${roomCodeRef.current}`);
-        if (!onLKSPage) {
-            router.replace(`/lks/${roomCodeRef.current}`);
-        }
-    }, [pathname, isLocked]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Show floating mini panel when user is in LKS but NOT on their room page
+    const isInLKS = isActive || isWaiting;
+    const onOwnRoomPage = pathname?.startsWith(`/lks/${roomCodeRef.current}`);
+    const showFloatingPanel = isInLKS && !onOwnRoomPage && !showCountdown && !!roomCode && !!roomTitle;
 
     return (
         <LKSSessionContext.Provider value={{
             roomCode, roomId, roomTitle,
             isWaiting, isActive,
-            isInLKS: isActive || isWaiting,
+            isInLKS,
             clearLKSSession,
         }}>
             {children}
@@ -160,7 +179,6 @@ export function LKSSessionProvider({ children }: { children: React.ReactNode }) 
             {/* === Countdown Overlay: appears on ANY page when admin presses Play === */}
             {showCountdown && (
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-2xl animate-in fade-in duration-300">
-                    {/* Ambient glow */}
                     <div className="absolute inset-0 bg-primary/5 pointer-events-none" />
                     <div className="absolute w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
 
@@ -186,15 +204,14 @@ export function LKSSessionProvider({ children }: { children: React.ReactNode }) 
                 </div>
             )}
 
-            {/* === Lock Overlay: shown when simulation active and user on wrong page === */}
-            {isLocked && !pathname?.startsWith(`/lks/`) && !showCountdown && (
-                <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/80 backdrop-blur-xl">
-                    <div className="text-center animate-in zoom-in-95 fade-in duration-300">
-                        <div className="w-16 h-16 rounded-full border-4 border-primary border-t-transparent animate-spin mx-auto mb-4" />
-                        <p className="text-white font-black text-xl uppercase tracking-widest">Returning to Simulation</p>
-                        <p className="text-primary/70 font-mono text-sm mt-2">Navigation is locked during active simulation</p>
-                    </div>
-                </div>
+            {/* === Floating Mini Room Panel: shown when user navigates away from room === */}
+            {showFloatingPanel && (
+                <LKSFloatingRoom
+                    roomCode={roomCode!}
+                    roomTitle={roomTitle!}
+                    isActive={isActive}
+                    onLeave={handleLeaveRoom}
+                />
             )}
         </LKSSessionContext.Provider>
     );
