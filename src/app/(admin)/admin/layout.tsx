@@ -3,7 +3,7 @@
 import { useRouter, usePathname } from "next/navigation";
 import { LogOut, Activity, Flag, TerminalSquare, Timer } from "lucide-react";
 import Link from "next/link";
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useUser } from "@/hooks/useUser";
 import { toast } from "sonner";
 
@@ -16,19 +16,45 @@ export default function AdminLayout({
     const router = useRouter();
     const pathname = usePathname();
 
+    // Guard: avoid double-redirect on rapid re-renders
+    const didRedirect = useRef(false);
+
     useEffect(() => {
-        if (isLoaded) {
-            if (!user) {
+        // isLoaded=true can come from localStorage cache BEFORE profile is fetched.
+        // We must NOT redirect while profile is still loading (user exists but profile=null).
+        if (!isLoaded) return;
+
+        if (!user) {
+            // Definitely unauthenticated
+            if (!didRedirect.current) {
+                didRedirect.current = true;
                 toast.error("Unauthenticated. Please login.");
                 router.replace("/login");
-            } else if (profile?.role !== "admin") {
+            }
+            return;
+        }
+
+        // User is logged in but profile query hasn't returned yet — wait silently
+        if (profile === null) return;
+
+        // Profile is loaded — now safely check role
+        if (profile.role !== "admin") {
+            if (!didRedirect.current) {
+                didRedirect.current = true;
                 toast.error("Unauthorized: Admin access only.");
                 router.replace("/challenges");
             }
         }
     }, [isLoaded, user, profile, router]);
 
-    if (!isLoaded || profile?.role !== "admin") {
+    // Reset redirect guard if user changes session
+    useEffect(() => {
+        didRedirect.current = false;
+    }, [user?.id]);
+
+    // Show loading while: auth not resolved, OR user exists but profile not fetched yet
+    const profileStillLoading = !!user && profile === null;
+    if (!isLoaded || profileStillLoading || profile?.role !== "admin") {
         return (
             <div className="w-full min-h-screen bg-[#050505] flex items-center justify-center">
                 <div className="animate-pulse flex items-center gap-3 text-primary font-mono text-sm tracking-widest uppercase">
