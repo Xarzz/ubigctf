@@ -326,9 +326,9 @@ export default function LKSCountdownPage() {
             </div>
 
             {/* Top-right controls */}
-            <div className="absolute top-8 right-8 flex items-center gap-2 z-20 flex-wrap justify-end">
+            <div className="absolute top-8 right-8 flex items-center gap-2 z-[100] flex-wrap justify-end">
                 {/* End Simulation */}
-                {(isRunning || prepDone) && !showWinnerOverlay && (
+                {(!isConfiguring && !showWinnerOverlay) && (
                     <button onClick={() => setShowEndConfirm(true)} title="End Simulation"
                         className="flex items-center gap-1.5 px-3 py-2.5 bg-red-600/20 border border-red-500/50 text-red-400 rounded-lg hover:bg-red-600 hover:text-white hover:shadow-[0_0_20px_rgba(239,68,68,0.6)] transition-all backdrop-blur-md text-xs font-mono uppercase tracking-widest font-bold animate-pulse hover:animate-none"
                     >

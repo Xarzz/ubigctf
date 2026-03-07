@@ -262,386 +262,403 @@ export default function RoomStatisticsPage() {
                     </button>
                 </div>
 
-                {/* ── Overview Cards ── */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {[
-                        { label: "Participants", value: participants.length, icon: <Users className="w-5 h-5" />, color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/20" },
-                        { label: "Challenges", value: challenges.length, icon: <Target className="w-5 h-5" />, color: "text-primary", bg: "bg-primary/10 border-primary/20" },
-                        { label: "Overall Solve Rate", value: `${Math.round(overallSolveRate * 100)}%`, icon: <CheckCircle2 className="w-5 h-5" />, color: "text-green-400", bg: "bg-green-500/10 border-green-500/20" },
-                        { label: "Total Solves", value: totalActualSolves, icon: <Trophy className="w-5 h-5" />, color: "text-yellow-400", bg: "bg-yellow-500/10 border-yellow-500/20" },
-                    ].map(card => (
-                        <div key={card.label} className={`rounded-2xl border p-5 ${card.bg} backdrop-blur-sm`}>
-                            <div className={`flex items-center gap-2 mb-3 ${card.color}`}>{card.icon}<span className="text-xs font-mono uppercase tracking-widest">{card.label}</span></div>
-                            <div className={`text-4xl font-black tabular-nums ${card.color}`}>{card.value}</div>
-                        </div>
-                    ))}
-                </div>
-
-                {/* ── Category Analysis ── */}
-                <section>
-                    <div className="flex items-center gap-3 mb-5">
-                        <BarChart3 className="w-6 h-6 text-primary" />
-                        <h2 className="text-2xl font-black uppercase tracking-widest text-white">Category Analysis</h2>
-                        <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">— weakest first</span>
+                {challenges.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-24 text-center border-t border-white/5 mt-4">
+                        <Target className="w-16 h-16 text-primary/30 mb-6" />
+                        <h2 className="text-3xl font-black uppercase tracking-widest text-white mb-3">No Challenges Assigned</h2>
+                        <p className="text-muted-foreground font-mono text-sm mb-8 max-w-md">
+                            It looks like this room does not have any challenges mapped to it yet. Please assign challenges before viewing statistics.
+                        </p>
+                        <button onClick={() => router.push(`/admin/lks/${roomDbId}`)}
+                            className="flex items-center gap-2 px-8 py-4 bg-primary/20 border border-primary/50 text-primary rounded-xl hover:bg-primary hover:text-white hover:shadow-[0_0_30px_rgba(239,68,68,0.5)] transition-all font-mono font-bold text-sm uppercase tracking-widest"
+                        >
+                            <Target className="w-5 h-5" /> Go to Room to Choose Challenges
+                        </button>
                     </div>
-                    <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
-                        {categoryStats.map(cat => {
-                            const cfg = getCatConfig(cat.category);
-                            const pct = cat.avgSolveRate;
-                            const progressColor = pct >= 0.7 ? "#22c55e" : pct >= 0.4 ? "#eab308" : "#ef4444";
-                            return (
-                                <div key={cat.category} className={`bg-black/60 border ${cat.borderColor} rounded-2xl p-5 backdrop-blur-sm`}>
-                                    {/* Header */}
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center gap-2">
-                                            <span className={cat.color}>{cat.icon}</span>
-                                            <h3 className={`font-black text-lg uppercase tracking-wide ${cat.color}`}>{cat.category}</h3>
-                                        </div>
-                                        <div className="relative w-14 h-14">
-                                            <CircleProgress pct={pct} size={56} stroke={4} color={progressColor} />
-                                            <div className="absolute inset-0 flex items-center justify-center">
-                                                <span className="text-[11px] font-bold font-mono text-white">{Math.round(pct * 100)}%</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Solve bar */}
-                                    <div className="mb-4">
-                                        <div className="flex justify-between text-xs font-mono text-muted-foreground mb-1.5">
-                                            <span>{cat.totalSolves} total solves</span>
-                                            <span>{cat.totalChallenges} challenges</span>
-                                        </div>
-                                        <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                                            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct * 100}%`, backgroundColor: progressColor }} />
-                                        </div>
-                                    </div>
-
-                                    {/* Badge */}
-                                    <div className="mb-3"><ScoreBadge rate={pct} /></div>
-
-                                    {/* Unsolved highlights */}
-                                    {cat.hardestUnsolved.length > 0 && (
-                                        <div className="mb-3 p-3 bg-red-500/5 border border-red-500/15 rounded-xl">
-                                            <p className="text-[9px] font-mono text-red-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
-                                                <XCircle className="w-3 h-3" /> Zero solves
-                                            </p>
-                                            {cat.hardestUnsolved.map(t => (
-                                                <p key={t} className="text-xs text-white/70 font-mono leading-relaxed">• {t}</p>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {/* Recommendations */}
-                                    <div className="p-3 bg-blue-500/5 border border-blue-500/15 rounded-xl">
-                                        <p className="text-[9px] font-mono text-blue-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
-                                            <Lightbulb className="w-3 h-3" /> Recommendations
-                                        </p>
-                                        {cat.recommendations.map((rec, i) => (
-                                            <p key={i} className="text-xs text-white/60 font-mono leading-relaxed">• {rec}</p>
-                                        ))}
-                                    </div>
+                ) : (
+                    <>
+                        {/* ── Overview Cards ── */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {[
+                                { label: "Participants", value: participants.length, icon: <Users className="w-5 h-5" />, color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/20" },
+                                { label: "Challenges", value: challenges.length, icon: <Target className="w-5 h-5" />, color: "text-primary", bg: "bg-primary/10 border-primary/20" },
+                                { label: "Overall Solve Rate", value: `${Math.round(overallSolveRate * 100)}%`, icon: <CheckCircle2 className="w-5 h-5" />, color: "text-green-400", bg: "bg-green-500/10 border-green-500/20" },
+                                { label: "Total Solves", value: totalActualSolves, icon: <Trophy className="w-5 h-5" />, color: "text-yellow-400", bg: "bg-yellow-500/10 border-yellow-500/20" },
+                            ].map(card => (
+                                <div key={card.label} className={`rounded-2xl border p-5 ${card.bg} backdrop-blur-sm`}>
+                                    <div className={`flex items-center gap-2 mb-3 ${card.color}`}>{card.icon}<span className="text-xs font-mono uppercase tracking-widest">{card.label}</span></div>
+                                    <div className={`text-4xl font-black tabular-nums ${card.color}`}>{card.value}</div>
                                 </div>
-                            );
-                        })}
-                    </div>
-                </section>
-
-                {/* ── Challenge Difficulty Breakdown ── */}
-                <section>
-                    <div className="flex items-center gap-3 mb-5">
-                        <Target className="w-6 h-6 text-primary" />
-                        <h2 className="text-2xl font-black uppercase tracking-widest text-white">Challenge Breakdown</h2>
-                    </div>
-                    <div className="bg-black/60 border border-white/10 rounded-2xl overflow-hidden">
-                        <div className="grid grid-cols-[2fr_1fr_1fr_1fr_2fr] text-[10px] font-mono uppercase tracking-widest text-muted-foreground px-5 py-3 border-b border-white/5">
-                            <span>Challenge</span><span>Category</span><span>Difficulty</span><span>Solves</span><span>Solve Rate</span>
+                            ))}
                         </div>
-                        <div className="max-h-80 overflow-y-auto custom-scrollbar">
-                            {challenges
-                                .sort((a, b) => (solveCountByChallenge[b.id] || 0) - (solveCountByChallenge[a.id] || 0))
-                                .map(ch => {
-                                    const solves = solveCountByChallenge[ch.id] || 0;
-                                    const rate = participants.length > 0 ? solves / participants.length : 0;
-                                    const diffColor = ch.difficulty === "Hard" ? "text-red-400" : ch.difficulty === "Medium" ? "text-yellow-400" : "text-green-400";
+
+                        {/* ── Category Analysis ── */}
+                        <section>
+                            <div className="flex items-center gap-3 mb-5">
+                                <BarChart3 className="w-6 h-6 text-primary" />
+                                <h2 className="text-2xl font-black uppercase tracking-widest text-white">Category Analysis</h2>
+                                <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">— weakest first</span>
+                            </div>
+                            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
+                                {categoryStats.map(cat => {
+                                    const cfg = getCatConfig(cat.category);
+                                    const pct = cat.avgSolveRate;
+                                    const progressColor = pct >= 0.7 ? "#22c55e" : pct >= 0.4 ? "#eab308" : "#ef4444";
                                     return (
-                                        <div key={ch.id} className="grid grid-cols-[2fr_1fr_1fr_1fr_2fr] items-center px-5 py-3.5 border-b border-white/5 last:border-none hover:bg-white/5 transition-colors">
-                                            <span className="text-white font-medium text-sm truncate pr-2">{ch.title}</span>
-                                            <span className={`text-xs font-mono ${getCatConfig(ch.category).color}`}>{ch.category}</span>
-                                            <span className={`text-xs font-mono ${diffColor}`}>{ch.difficulty}</span>
-                                            <span className="text-white font-mono">{solves}/{participants.length}</span>
-                                            <div className="flex items-center gap-2">
-                                                <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                                                    <div className="h-full rounded-full" style={{ width: `${rate * 100}%`, backgroundColor: rate >= 0.6 ? "#22c55e" : rate >= 0.3 ? "#eab308" : "#ef4444" }} />
+                                        <div key={cat.category} className={`bg-black/60 border ${cat.borderColor} rounded-2xl p-5 backdrop-blur-sm`}>
+                                            {/* Header */}
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="flex items-center gap-2">
+                                                    <span className={cat.color}>{cat.icon}</span>
+                                                    <h3 className={`font-black text-lg uppercase tracking-wide ${cat.color}`}>{cat.category}</h3>
                                                 </div>
-                                                <span className="text-xs font-mono text-muted-foreground w-10 text-right">{Math.round(rate * 100)}%</span>
+                                                <div className="relative w-14 h-14">
+                                                    <CircleProgress pct={pct} size={56} stroke={4} color={progressColor} />
+                                                    <div className="absolute inset-0 flex items-center justify-center">
+                                                        <span className="text-[11px] font-bold font-mono text-white">{Math.round(pct * 100)}%</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Solve bar */}
+                                            <div className="mb-4">
+                                                <div className="flex justify-between text-xs font-mono text-muted-foreground mb-1.5">
+                                                    <span>{cat.totalSolves} total solves</span>
+                                                    <span>{cat.totalChallenges} challenges</span>
+                                                </div>
+                                                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                                                    <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct * 100}%`, backgroundColor: progressColor }} />
+                                                </div>
+                                            </div>
+
+                                            {/* Badge */}
+                                            <div className="mb-3"><ScoreBadge rate={pct} /></div>
+
+                                            {/* Unsolved highlights */}
+                                            {cat.hardestUnsolved.length > 0 && (
+                                                <div className="mb-3 p-3 bg-red-500/5 border border-red-500/15 rounded-xl">
+                                                    <p className="text-[9px] font-mono text-red-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                                                        <XCircle className="w-3 h-3" /> Zero solves
+                                                    </p>
+                                                    {cat.hardestUnsolved.map(t => (
+                                                        <p key={t} className="text-xs text-white/70 font-mono leading-relaxed">• {t}</p>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {/* Recommendations */}
+                                            <div className="p-3 bg-blue-500/5 border border-blue-500/15 rounded-xl">
+                                                <p className="text-[9px] font-mono text-blue-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                                                    <Lightbulb className="w-3 h-3" /> Recommendations
+                                                </p>
+                                                {cat.recommendations.map((rec, i) => (
+                                                    <p key={i} className="text-xs text-white/60 font-mono leading-relaxed">• {rec}</p>
+                                                ))}
                                             </div>
                                         </div>
                                     );
                                 })}
-                        </div>
-                    </div>
+                            </div>
+                        </section>
 
-                    {/* Notable challenges */}
-                    <div className="grid md:grid-cols-2 gap-4 mt-4">
-                        {hardestChallenge && (
-                            <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4 flex items-start gap-3">
-                                <TrendingDown className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-                                <div>
-                                    <p className="text-[10px] font-mono text-red-400 uppercase tracking-widest mb-1">Hardest Challenge (Least Solved)</p>
-                                    <p className="text-white font-bold">{hardestChallenge.title}</p>
-                                    <p className="text-xs text-muted-foreground font-mono mt-0.5">{solveCountByChallenge[hardestChallenge.id] || 0} solve(s) · {hardestChallenge.category} · {hardestChallenge.difficulty}</p>
+                        {/* ── Challenge Difficulty Breakdown ── */}
+                        <section>
+                            <div className="flex items-center gap-3 mb-5">
+                                <Target className="w-6 h-6 text-primary" />
+                                <h2 className="text-2xl font-black uppercase tracking-widest text-white">Challenge Breakdown</h2>
+                            </div>
+                            <div className="bg-black/60 border border-white/10 rounded-2xl overflow-hidden">
+                                <div className="grid grid-cols-[2fr_1fr_1fr_1fr_2fr] text-[10px] font-mono uppercase tracking-widest text-muted-foreground px-5 py-3 border-b border-white/5">
+                                    <span>Challenge</span><span>Category</span><span>Difficulty</span><span>Solves</span><span>Solve Rate</span>
+                                </div>
+                                <div className="max-h-80 overflow-y-auto custom-scrollbar">
+                                    {challenges
+                                        .sort((a, b) => (solveCountByChallenge[b.id] || 0) - (solveCountByChallenge[a.id] || 0))
+                                        .map(ch => {
+                                            const solves = solveCountByChallenge[ch.id] || 0;
+                                            const rate = participants.length > 0 ? solves / participants.length : 0;
+                                            const diffColor = ch.difficulty === "Hard" ? "text-red-400" : ch.difficulty === "Medium" ? "text-yellow-400" : "text-green-400";
+                                            return (
+                                                <div key={ch.id} className="grid grid-cols-[2fr_1fr_1fr_1fr_2fr] items-center px-5 py-3.5 border-b border-white/5 last:border-none hover:bg-white/5 transition-colors">
+                                                    <span className="text-white font-medium text-sm truncate pr-2">{ch.title}</span>
+                                                    <span className={`text-xs font-mono ${getCatConfig(ch.category).color}`}>{ch.category}</span>
+                                                    <span className={`text-xs font-mono ${diffColor}`}>{ch.difficulty}</span>
+                                                    <span className="text-white font-mono">{solves}/{participants.length}</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                                            <div className="h-full rounded-full" style={{ width: `${rate * 100}%`, backgroundColor: rate >= 0.6 ? "#22c55e" : rate >= 0.3 ? "#eab308" : "#ef4444" }} />
+                                                        </div>
+                                                        <span className="text-xs font-mono text-muted-foreground w-10 text-right">{Math.round(rate * 100)}%</span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                 </div>
                             </div>
-                        )}
-                        {easiestChallenge && (
-                            <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-4 flex items-start gap-3">
-                                <TrendingUp className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
-                                <div>
-                                    <p className="text-[10px] font-mono text-green-400 uppercase tracking-widest mb-1">Easiest Challenge (Most Solved)</p>
-                                    <p className="text-white font-bold">{easiestChallenge.title}</p>
-                                    <p className="text-xs text-muted-foreground font-mono mt-0.5">{solveCountByChallenge[easiestChallenge.id] || 0} solve(s) · {easiestChallenge.category} · {easiestChallenge.difficulty}</p>
-                                </div>
+
+                            {/* Notable challenges */}
+                            <div className="grid md:grid-cols-2 gap-4 mt-4">
+                                {hardestChallenge && (
+                                    <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4 flex items-start gap-3">
+                                        <TrendingDown className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                                        <div>
+                                            <p className="text-[10px] font-mono text-red-400 uppercase tracking-widest mb-1">Hardest Challenge (Least Solved)</p>
+                                            <p className="text-white font-bold">{hardestChallenge.title}</p>
+                                            <p className="text-xs text-muted-foreground font-mono mt-0.5">{solveCountByChallenge[hardestChallenge.id] || 0} solve(s) · {hardestChallenge.category} · {hardestChallenge.difficulty}</p>
+                                        </div>
+                                    </div>
+                                )}
+                                {easiestChallenge && (
+                                    <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-4 flex items-start gap-3">
+                                        <TrendingUp className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
+                                        <div>
+                                            <p className="text-[10px] font-mono text-green-400 uppercase tracking-widest mb-1">Easiest Challenge (Most Solved)</p>
+                                            <p className="text-white font-bold">{easiestChallenge.title}</p>
+                                            <p className="text-xs text-muted-foreground font-mono mt-0.5">{solveCountByChallenge[easiestChallenge.id] || 0} solve(s) · {easiestChallenge.category} · {easiestChallenge.difficulty}</p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </div>
-                </section>
+                        </section>
 
-                {/* ── Per-Participant Evaluation ── */}
-                <section>
-                    <div className="flex items-center gap-3 mb-5">
-                        <Users className="w-6 h-6 text-primary" />
-                        <h2 className="text-2xl font-black uppercase tracking-widest text-white">Individual Evaluation</h2>
-                    </div>
-                    <div className="space-y-4">
-                        {participantDetails.map(detail => {
-                            const isExpanded = expandedParticipant === detail.participant.user_id;
-                            const solveRate = challenges.length > 0 ? detail.solvedChallenges.length / challenges.length : 0;
-                            const rankColors: Record<number, string> = { 1: "text-yellow-400", 2: "text-gray-300", 3: "text-amber-500" };
-                            const rankColor = rankColors[detail.rank] || "text-muted-foreground";
+                        {/* ── Per-Participant Evaluation ── */}
+                        <section>
+                            <div className="flex items-center gap-3 mb-5">
+                                <Users className="w-6 h-6 text-primary" />
+                                <h2 className="text-2xl font-black uppercase tracking-widest text-white">Individual Evaluation</h2>
+                            </div>
+                            <div className="space-y-4">
+                                {participantDetails.map(detail => {
+                                    const isExpanded = expandedParticipant === detail.participant.user_id;
+                                    const solveRate = challenges.length > 0 ? detail.solvedChallenges.length / challenges.length : 0;
+                                    const rankColors: Record<number, string> = { 1: "text-yellow-400", 2: "text-gray-300", 3: "text-amber-500" };
+                                    const rankColor = rankColors[detail.rank] || "text-muted-foreground";
 
-                            return (
-                                <div key={detail.participant.user_id} className="bg-black/60 border border-white/10 rounded-2xl overflow-hidden">
-                                    {/* Participant header — always visible */}
-                                    <button
-                                        className="w-full flex items-center gap-5 px-6 py-5 hover:bg-white/5 transition-colors text-left"
-                                        onClick={() => setExpandedParticipant(isExpanded ? null : detail.participant.user_id)}
-                                    >
-                                        {/* Rank */}
-                                        <div className={`w-10 text-center font-black text-xl font-mono ${rankColor}`}>
-                                            {detail.rank <= 3 ? ["🥇", "🥈", "🥉"][detail.rank - 1] : `#${detail.rank}`}
-                                        </div>
-
-                                        {/* Name + badges */}
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                <span className="text-white font-bold text-lg truncate">{detail.participant.name}</span>
-                                                {detail.strongCategories.map(c => (
-                                                    <span key={c} className={`text-[9px] font-mono px-1.5 py-0.5 rounded border ${getCatConfig(c).border} ${getCatConfig(c).color}`}>✓ {c}</span>
-                                                ))}
-                                            </div>
-                                            <div className="flex items-center gap-4 mt-1 text-xs font-mono text-muted-foreground">
-                                                <span>{detail.solvedChallenges.length}/{challenges.length} solved</span>
-                                                <span>{detail.participant.score} pts</span>
-                                                {detail.weakCategories.length > 0 && (
-                                                    <span className="text-orange-400">⚠ Weak: {detail.weakCategories.join(", ")}</span>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {/* Mini progress */}
-                                        <div className="shrink-0 flex items-center gap-4 md:gap-6">
-                                            <div className="hidden md:block">
-                                                <div className="text-[10px] text-muted-foreground font-mono uppercase mb-1 text-right">Solve Rate</div>
-                                                <div className="w-24 h-2 bg-white/5 rounded-full overflow-hidden">
-                                                    <div className="h-full rounded-full" style={{ width: `${solveRate * 100}%`, backgroundColor: solveRate >= 0.7 ? "#22c55e" : solveRate >= 0.4 ? "#eab308" : "#ef4444" }} />
+                                    return (
+                                        <div key={detail.participant.user_id} className="bg-black/60 border border-white/10 rounded-2xl overflow-hidden">
+                                            {/* Participant header — always visible */}
+                                            <button
+                                                className="w-full flex items-center gap-5 px-6 py-5 hover:bg-white/5 transition-colors text-left"
+                                                onClick={() => setExpandedParticipant(isExpanded ? null : detail.participant.user_id)}
+                                            >
+                                                {/* Rank */}
+                                                <div className={`w-10 text-center font-black text-xl font-mono ${rankColor}`}>
+                                                    {detail.rank <= 3 ? ["🥇", "🥈", "🥉"][detail.rank - 1] : `#${detail.rank}`}
                                                 </div>
-                                                <div className="text-xs text-right font-mono mt-0.5">{Math.round(solveRate * 100)}%</div>
-                                            </div>
-                                            <ScoreBadge rate={solveRate} />
-                                            {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-                                        </div>
-                                    </button>
 
-                                    {/* Expanded detail */}
-                                    {isExpanded && (
-                                        <div className="border-t border-white/10 p-6 space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
-                                            {/* Category breakdown */}
-                                            <div>
-                                                <p className="text-[10px] font-mono text-primary uppercase tracking-widest mb-3">Category Performance</p>
-                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                                    {Object.entries(detail.categoryBreakdown).map(([cat, data]) => {
-                                                        const rate = data.total > 0 ? data.solved / data.total : 0;
-                                                        const cfg = getCatConfig(cat);
-                                                        return (
-                                                            <div key={cat} className={`bg-black/40 border ${cfg.border} rounded-xl p-3`}>
-                                                                <div className={`flex items-center gap-1.5 mb-2 ${cfg.color}`}>
-                                                                    {cfg.icon}<span className="text-[10px] font-mono uppercase tracking-widest">{cat}</span>
-                                                                </div>
-                                                                <div className="text-white font-bold text-lg">{data.solved}<span className="text-muted-foreground font-normal text-xs">/{data.total}</span></div>
-                                                                <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mt-1.5">
-                                                                    <div className="h-full rounded-full" style={{ width: `${rate * 100}%`, backgroundColor: rate >= 0.7 ? "#22c55e" : rate >= 0.4 ? "#eab308" : "#ef4444" }} />
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-
-                                            {/* Attempted but failed */}
-                                            {detail.attemptedButFailed.length > 0 && (
-                                                <div>
-                                                    <p className="text-[10px] font-mono text-orange-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                                                        <AlertTriangle className="w-3 h-3" /> Attempted But Not Solved — Needs Follow-up
-                                                    </p>
-                                                    <div className="grid md:grid-cols-2 gap-2">
-                                                        {detail.attemptedButFailed.map(ch => (
-                                                            <div key={ch.id} className="flex items-center justify-between bg-orange-500/5 border border-orange-500/15 rounded-xl px-4 py-2.5">
-                                                                <div>
-                                                                    <span className="text-white text-sm font-medium">{ch.title}</span>
-                                                                    <span className={`text-[9px] font-mono ml-2 ${getCatConfig(ch.category).color}`}>{ch.category}</span>
-                                                                </div>
-                                                                <span className="text-orange-400 font-mono text-xs font-bold">{ch.points}pts</span>
-                                                            </div>
+                                                {/* Name + badges */}
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="text-white font-bold text-lg truncate">{detail.participant.name}</span>
+                                                        {detail.strongCategories.map(c => (
+                                                            <span key={c} className={`text-[9px] font-mono px-1.5 py-0.5 rounded border ${getCatConfig(c).border} ${getCatConfig(c).color}`}>✓ {c}</span>
                                                         ))}
                                                     </div>
-                                                </div>
-                                            )}
-
-                                            {/* Never attempted */}
-                                            {detail.neverAttempted.length > 0 && (
-                                                <div>
-                                                    <p className="text-[10px] font-mono text-red-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                                                        <XCircle className="w-3 h-3" /> Never Attempted — Unexplored Areas
-                                                    </p>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {detail.neverAttempted.map(ch => (
-                                                            <span key={ch.id} className="text-xs font-mono px-3 py-1.5 bg-red-500/5 border border-red-500/15 rounded-lg text-white/70 flex items-center gap-1.5">
-                                                                <span className={getCatConfig(ch.category).color}>●</span>{ch.title}
-                                                            </span>
-                                                        ))}
+                                                    <div className="flex items-center gap-4 mt-1 text-xs font-mono text-muted-foreground">
+                                                        <span>{detail.solvedChallenges.length}/{challenges.length} solved</span>
+                                                        <span>{detail.participant.score} pts</span>
+                                                        {detail.weakCategories.length > 0 && (
+                                                            <span className="text-orange-400">⚠ Weak: {detail.weakCategories.join(", ")}</span>
+                                                        )}
                                                     </div>
                                                 </div>
-                                            )}
 
-                                            {/* Solved */}
-                                            {detail.solvedChallenges.length > 0 && (
-                                                <div>
-                                                    <p className="text-[10px] font-mono text-green-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                                                        <CheckCircle2 className="w-3 h-3" /> Successfully Solved
-                                                    </p>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {detail.solvedChallenges.map(ch => (
-                                                            <span key={ch.id} className="text-xs font-mono px-3 py-1.5 bg-green-500/5 border border-green-500/15 rounded-lg text-white/80 flex items-center gap-1.5">
-                                                                <CheckCircle2 className="w-3 h-3 text-green-400" />{ch.title}
-                                                            </span>
-                                                        ))}
+                                                {/* Mini progress */}
+                                                <div className="shrink-0 flex items-center gap-4 md:gap-6">
+                                                    <div className="hidden md:block">
+                                                        <div className="text-[10px] text-muted-foreground font-mono uppercase mb-1 text-right">Solve Rate</div>
+                                                        <div className="w-24 h-2 bg-white/5 rounded-full overflow-hidden">
+                                                            <div className="h-full rounded-full" style={{ width: `${solveRate * 100}%`, backgroundColor: solveRate >= 0.7 ? "#22c55e" : solveRate >= 0.4 ? "#eab308" : "#ef4444" }} />
+                                                        </div>
+                                                        <div className="text-xs text-right font-mono mt-0.5">{Math.round(solveRate * 100)}%</div>
                                                     </div>
+                                                    <ScoreBadge rate={solveRate} />
+                                                    {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                                                 </div>
-                                            )}
+                                            </button>
 
-                                            {/* Personal recommendations */}
-                                            <div className="bg-blue-500/5 border border-blue-500/15 rounded-xl p-4">
-                                                <p className="text-[10px] font-mono text-blue-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                                                    <Lightbulb className="w-3 h-3" /> Personal Evaluation & Recommendations
-                                                </p>
-                                                <ul className="space-y-2">
-                                                    {detail.strongCategories.length > 0 && (
-                                                        <li className="text-sm text-white/80 font-mono">
-                                                            <span className="text-green-400">✓ Strengths:</span> Strong performance in <span className="text-white font-bold">{detail.strongCategories.join(", ")}</span>. Keep developing these areas.
-                                                        </li>
-                                                    )}
-                                                    {detail.weakCategories.length > 0 && (
-                                                        <li className="text-sm text-white/80 font-mono">
-                                                            <span className="text-orange-400">⚠ Focus Areas:</span> Low performance in <span className="text-white font-bold">{detail.weakCategories.join(", ")}</span>.
-                                                            {detail.weakCategories.map(cat => ` ${getCatConfig(cat).tip}`).join(" ")}
-                                                        </li>
-                                                    )}
-                                                    {detail.neverAttempted.length > 0 && (
-                                                        <li className="text-sm text-white/80 font-mono">
-                                                            <span className="text-red-400">✗ Unexplored:</span> {detail.neverAttempted.length} challenges were never attempted. Broaden exploration in future sessions.
-                                                        </li>
-                                                    )}
+                                            {/* Expanded detail */}
+                                            {isExpanded && (
+                                                <div className="border-t border-white/10 p-6 space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                    {/* Category breakdown */}
+                                                    <div>
+                                                        <p className="text-[10px] font-mono text-primary uppercase tracking-widest mb-3">Category Performance</p>
+                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                                            {Object.entries(detail.categoryBreakdown).map(([cat, data]) => {
+                                                                const rate = data.total > 0 ? data.solved / data.total : 0;
+                                                                const cfg = getCatConfig(cat);
+                                                                return (
+                                                                    <div key={cat} className={`bg-black/40 border ${cfg.border} rounded-xl p-3`}>
+                                                                        <div className={`flex items-center gap-1.5 mb-2 ${cfg.color}`}>
+                                                                            {cfg.icon}<span className="text-[10px] font-mono uppercase tracking-widest">{cat}</span>
+                                                                        </div>
+                                                                        <div className="text-white font-bold text-lg">{data.solved}<span className="text-muted-foreground font-normal text-xs">/{data.total}</span></div>
+                                                                        <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mt-1.5">
+                                                                            <div className="h-full rounded-full" style={{ width: `${rate * 100}%`, backgroundColor: rate >= 0.7 ? "#22c55e" : rate >= 0.4 ? "#eab308" : "#ef4444" }} />
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Attempted but failed */}
                                                     {detail.attemptedButFailed.length > 0 && (
-                                                        <li className="text-sm text-white/80 font-mono">
-                                                            <span className="text-yellow-400">→ Near Misses:</span> {detail.attemptedButFailed.length} challenges were attempted but not solved. Review writeups and problem approaches post-event.
-                                                        </li>
+                                                        <div>
+                                                            <p className="text-[10px] font-mono text-orange-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                                                                <AlertTriangle className="w-3 h-3" /> Attempted But Not Solved — Needs Follow-up
+                                                            </p>
+                                                            <div className="grid md:grid-cols-2 gap-2">
+                                                                {detail.attemptedButFailed.map(ch => (
+                                                                    <div key={ch.id} className="flex items-center justify-between bg-orange-500/5 border border-orange-500/15 rounded-xl px-4 py-2.5">
+                                                                        <div>
+                                                                            <span className="text-white text-sm font-medium">{ch.title}</span>
+                                                                            <span className={`text-[9px] font-mono ml-2 ${getCatConfig(ch.category).color}`}>{ch.category}</span>
+                                                                        </div>
+                                                                        <span className="text-orange-400 font-mono text-xs font-bold">{ch.points}pts</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
                                                     )}
-                                                    {solveRate >= 0.8 && (
-                                                        <li className="text-sm text-white/80 font-mono">
-                                                            <span className="text-primary">★ Excellent:</span> Outstanding performance! Consider trying harder competitions like national/international CTF events.
-                                                        </li>
+
+                                                    {/* Never attempted */}
+                                                    {detail.neverAttempted.length > 0 && (
+                                                        <div>
+                                                            <p className="text-[10px] font-mono text-red-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                                                                <XCircle className="w-3 h-3" /> Never Attempted — Unexplored Areas
+                                                            </p>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {detail.neverAttempted.map(ch => (
+                                                                    <span key={ch.id} className="text-xs font-mono px-3 py-1.5 bg-red-500/5 border border-red-500/15 rounded-lg text-white/70 flex items-center gap-1.5">
+                                                                        <span className={getCatConfig(ch.category).color}>●</span>{ch.title}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
                                                     )}
-                                                </ul>
-                                            </div>
+
+                                                    {/* Solved */}
+                                                    {detail.solvedChallenges.length > 0 && (
+                                                        <div>
+                                                            <p className="text-[10px] font-mono text-green-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                                                                <CheckCircle2 className="w-3 h-3" /> Successfully Solved
+                                                            </p>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {detail.solvedChallenges.map(ch => (
+                                                                    <span key={ch.id} className="text-xs font-mono px-3 py-1.5 bg-green-500/5 border border-green-500/15 rounded-lg text-white/80 flex items-center gap-1.5">
+                                                                        <CheckCircle2 className="w-3 h-3 text-green-400" />{ch.title}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Personal recommendations */}
+                                                    <div className="bg-blue-500/5 border border-blue-500/15 rounded-xl p-4">
+                                                        <p className="text-[10px] font-mono text-blue-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                                                            <Lightbulb className="w-3 h-3" /> Personal Evaluation & Recommendations
+                                                        </p>
+                                                        <ul className="space-y-2">
+                                                            {detail.strongCategories.length > 0 && (
+                                                                <li className="text-sm text-white/80 font-mono">
+                                                                    <span className="text-green-400">✓ Strengths:</span> Strong performance in <span className="text-white font-bold">{detail.strongCategories.join(", ")}</span>. Keep developing these areas.
+                                                                </li>
+                                                            )}
+                                                            {detail.weakCategories.length > 0 && (
+                                                                <li className="text-sm text-white/80 font-mono">
+                                                                    <span className="text-orange-400">⚠ Focus Areas:</span> Low performance in <span className="text-white font-bold">{detail.weakCategories.join(", ")}</span>.
+                                                                    {detail.weakCategories.map(cat => ` ${getCatConfig(cat).tip}`).join(" ")}
+                                                                </li>
+                                                            )}
+                                                            {detail.neverAttempted.length > 0 && (
+                                                                <li className="text-sm text-white/80 font-mono">
+                                                                    <span className="text-red-400">✗ Unexplored:</span> {detail.neverAttempted.length} challenges were never attempted. Broaden exploration in future sessions.
+                                                                </li>
+                                                            )}
+                                                            {detail.attemptedButFailed.length > 0 && (
+                                                                <li className="text-sm text-white/80 font-mono">
+                                                                    <span className="text-yellow-400">→ Near Misses:</span> {detail.attemptedButFailed.length} challenges were attempted but not solved. Review writeups and problem approaches post-event.
+                                                                </li>
+                                                            )}
+                                                            {solveRate >= 0.8 && (
+                                                                <li className="text-sm text-white/80 font-mono">
+                                                                    <span className="text-primary">★ Excellent:</span> Outstanding performance! Consider trying harder competitions like national/international CTF events.
+                                                                </li>
+                                                            )}
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
+                                    );
+                                })}
+                            </div>
+                        </section>
+
+                        {/* ── Summary for Admin Delivery ── */}
+                        <section className="bg-gradient-to-br from-primary/5 to-purple-500/5 border border-primary/20 rounded-2xl p-8">
+                            <div className="flex items-center gap-3 mb-6">
+                                <Award className="w-6 h-6 text-primary" />
+                                <h2 className="text-2xl font-black uppercase tracking-widest text-white">Admin Delivery Summary</h2>
+                                <span className="text-xs font-mono text-muted-foreground">— talking points for participants</span>
+                            </div>
+
+                            <div className="grid md:grid-cols-2 gap-6">
+                                {/* What to emphasize */}
+                                <div className="space-y-4">
+                                    <h3 className="text-sm font-mono text-primary uppercase tracking-widest flex items-center gap-2">
+                                        <TrendingUp className="w-4 h-4" /> Positive Takeaways
+                                    </h3>
+                                    <ul className="space-y-2">
+                                        {categoryStats.filter(c => c.avgSolveRate >= 0.5).slice(0, 3).map(cat => (
+                                            <li key={cat.category} className="flex items-start gap-2 text-sm text-white/80 font-mono">
+                                                <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />
+                                                <span><span className="text-white font-bold">{cat.category}</span>: {Math.round(cat.avgSolveRate * 100)}% solve rate — participants showed good understanding</span>
+                                            </li>
+                                        ))}
+                                        {participants.length > 0 && (
+                                            <li className="flex items-start gap-2 text-sm text-white/80 font-mono">
+                                                <Trophy className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
+                                                <span>Champion: <span className="text-white font-bold">{participants[0]?.name}</span> with <span className="text-primary font-bold">{participants[0]?.score} pts</span></span>
+                                            </li>
+                                        )}
+                                    </ul>
                                 </div>
-                            );
-                        })}
-                    </div>
-                </section>
 
-                {/* ── Summary for Admin Delivery ── */}
-                <section className="bg-gradient-to-br from-primary/5 to-purple-500/5 border border-primary/20 rounded-2xl p-8">
-                    <div className="flex items-center gap-3 mb-6">
-                        <Award className="w-6 h-6 text-primary" />
-                        <h2 className="text-2xl font-black uppercase tracking-widest text-white">Admin Delivery Summary</h2>
-                        <span className="text-xs font-mono text-muted-foreground">— talking points for participants</span>
-                    </div>
+                                {/* What to improve */}
+                                <div className="space-y-4">
+                                    <h3 className="text-sm font-mono text-red-400 uppercase tracking-widest flex items-center gap-2">
+                                        <AlertTriangle className="w-4 h-4" /> Areas to Address
+                                    </h3>
+                                    <ul className="space-y-2">
+                                        {categoryStats.filter(c => c.avgSolveRate < 0.3).slice(0, 3).map(cat => (
+                                            <li key={cat.category} className="flex items-start gap-2 text-sm text-white/80 font-mono">
+                                                <XCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                                                <span><span className="text-white font-bold">{cat.category}</span> ({Math.round(cat.avgSolveRate * 100)}%): {getCatConfig(cat.category).tip}</span>
+                                            </li>
+                                        ))}
+                                        {totalActualSolves === 0 && (
+                                            <li className="text-sm text-red-400/80 font-mono">No challenges solved — consider starting with beginner-level CTF platforms before advancing.</li>
+                                        )}
+                                    </ul>
+                                </div>
+                            </div>
 
-                    <div className="grid md:grid-cols-2 gap-6">
-                        {/* What to emphasize */}
-                        <div className="space-y-4">
-                            <h3 className="text-sm font-mono text-primary uppercase tracking-widest flex items-center gap-2">
-                                <TrendingUp className="w-4 h-4" /> Positive Takeaways
-                            </h3>
-                            <ul className="space-y-2">
-                                {categoryStats.filter(c => c.avgSolveRate >= 0.5).slice(0, 3).map(cat => (
-                                    <li key={cat.category} className="flex items-start gap-2 text-sm text-white/80 font-mono">
-                                        <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />
-                                        <span><span className="text-white font-bold">{cat.category}</span>: {Math.round(cat.avgSolveRate * 100)}% solve rate — participants showed good understanding</span>
-                                    </li>
-                                ))}
-                                {participants.length > 0 && (
-                                    <li className="flex items-start gap-2 text-sm text-white/80 font-mono">
-                                        <Trophy className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
-                                        <span>Champion: <span className="text-white font-bold">{participants[0]?.name}</span> with <span className="text-primary font-bold">{participants[0]?.score} pts</span></span>
-                                    </li>
-                                )}
-                            </ul>
-                        </div>
-
-                        {/* What to improve */}
-                        <div className="space-y-4">
-                            <h3 className="text-sm font-mono text-red-400 uppercase tracking-widest flex items-center gap-2">
-                                <AlertTriangle className="w-4 h-4" /> Areas to Address
-                            </h3>
-                            <ul className="space-y-2">
-                                {categoryStats.filter(c => c.avgSolveRate < 0.3).slice(0, 3).map(cat => (
-                                    <li key={cat.category} className="flex items-start gap-2 text-sm text-white/80 font-mono">
-                                        <XCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-                                        <span><span className="text-white font-bold">{cat.category}</span> ({Math.round(cat.avgSolveRate * 100)}%): {getCatConfig(cat.category).tip}</span>
-                                    </li>
-                                ))}
-                                {totalActualSolves === 0 && (
-                                    <li className="text-sm text-red-400/80 font-mono">No challenges solved — consider starting with beginner-level CTF platforms before advancing.</li>
-                                )}
-                            </ul>
-                        </div>
-                    </div>
-
-                    {/* Overall recommendation */}
-                    <div className="mt-6 p-4 bg-white/5 border border-white/10 rounded-xl">
-                        <p className="text-[10px] font-mono text-primary uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                            <Lightbulb className="w-3 h-3" /> Recommended Next Steps for All Participants
-                        </p>
-                        <div className="grid md:grid-cols-3 gap-3 text-xs font-mono text-white/70">
-                            <div className="flex items-start gap-2"><Clock className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" /><span>Practice 30 min/day on PicoCTF, HackTheBox, or CTFtime</span></div>
-                            <div className="flex items-start gap-2"><BookOpen className="w-3.5 h-3.5 text-green-400 shrink-0 mt-0.5" /><span>Read writeups from top CTF teams on CTFtime after each event</span></div>
-                            <div className="flex items-start gap-2"><Users className="w-3.5 h-3.5 text-purple-400 shrink-0 mt-0.5" /><span>Form study groups focused on weak categories identified above</span></div>
-                        </div>
-                    </div>
-                </section>
+                            {/* Overall recommendation */}
+                            <div className="mt-6 p-4 bg-white/5 border border-white/10 rounded-xl">
+                                <p className="text-[10px] font-mono text-primary uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                                    <Lightbulb className="w-3 h-3" /> Recommended Next Steps for All Participants
+                                </p>
+                                <div className="grid md:grid-cols-3 gap-3 text-xs font-mono text-white/70">
+                                    <div className="flex items-start gap-2"><Clock className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" /><span>Practice 30 min/day on PicoCTF, HackTheBox, or CTFtime</span></div>
+                                    <div className="flex items-start gap-2"><BookOpen className="w-3.5 h-3.5 text-green-400 shrink-0 mt-0.5" /><span>Read writeups from top CTF teams on CTFtime after each event</span></div>
+                                    <div className="flex items-start gap-2"><Users className="w-3.5 h-3.5 text-purple-400 shrink-0 mt-0.5" /><span>Form study groups focused on weak categories identified above</span></div>
+                                </div>
+                            </div>
+                        </section>
+                    </>
+                )}
 
             </div>
         </div>

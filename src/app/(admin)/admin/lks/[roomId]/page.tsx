@@ -8,7 +8,7 @@ import Link from "next/link";
 import {
     ArrowLeft, Share2, Users, Target, Clock, Play,
     Copy, CheckCircle, Timer, AlertTriangle, Settings2,
-    UserX, Wifi, WifiOff, Zap
+    UserX, Wifi, WifiOff, Zap, Plus, Search
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,14 @@ export default function AdminRoomDetailPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [codeCopied, setCodeCopied] = useState(false);
     const [isStarting, setIsStarting] = useState(false);
+
+    // Setup challenges state
+    const [isSetupOpen, setIsSetupOpen] = useState(false);
+    const [allChallenges, setAllChallenges] = useState<any[]>([]);
+    const [searchChall, setSearchChall] = useState("");
+    const [filterCategory, setFilterCategory] = useState("All");
+
+    const categoriesList = ["All", ...Array.from(new Set(allChallenges.map(c => c.category)))];
 
     // Kick player state
     const [kickTarget, setKickTarget] = useState<any>(null);
@@ -66,7 +74,18 @@ export default function AdminRoomDetailPage() {
     useEffect(() => {
         if (!roomId) return;
         fetchRoomData();
+        fetchGlobalChallenges();
     }, [roomId]);
+
+    const fetchGlobalChallenges = async () => {
+        const { data, error } = await supabase.from('challenges').select('id, title, categories(name), difficulty, points').order('created_at', { ascending: false });
+        if (data) {
+            setAllChallenges(data.map((c: any) => ({
+                ...c,
+                category: c.categories?.name || "Unknown"
+            })));
+        }
+    };
 
     useEffect(() => {
         if (room?.room_code) checkTimer(room.room_code);
@@ -191,6 +210,23 @@ export default function AdminRoomDetailPage() {
             toast.error("Failed to load room data");
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const toggleChallengeMapping = async (challengeId: string) => {
+        if (!room) return;
+        const isCurrentlyMapped = challenges.some((c: any) => c.challenge_id === challengeId);
+
+        if (isCurrentlyMapped) {
+            // Remove
+            await supabase.from('lks_room_challenges').delete().match({ room_id: room.id, challenge_id: challengeId });
+            setChallenges(prev => prev.filter(c => c.challenge_id !== challengeId));
+        } else {
+            // Add
+            await supabase.from('lks_room_challenges').insert([{ room_id: room.id, challenge_id: challengeId }]);
+            // Fetch single mapped challenge to add to state directly
+            const { data } = await supabase.from('lks_room_challenges').select('challenge_id, challenges(title, difficulty, points, categories(name))').eq('room_id', room.id).eq('challenge_id', challengeId).single();
+            if (data) setChallenges(prev => [...prev, data]);
         }
     };
 
@@ -334,8 +370,8 @@ export default function AdminRoomDetailPage() {
                         {participants.length >= 1 ? `${participants.length} player(s) joined ✓` : "Waiting for players to join..."}
                     </div>
                     <div
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-mono cursor-pointer transition-all ${hasTimer ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400 hover:border-yellow-400'}`}
-                        onClick={() => !hasTimer && setIsTimerModalOpen(true)}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-mono cursor-pointer transition-all hover:bg-white/5 ${hasTimer ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400 hover:border-yellow-400'}`}
+                        onClick={() => setIsTimerModalOpen(true)}
                     >
                         <Timer className="w-4 h-4" />
                         {hasTimer ? "Timer configured ✓" : "Timer not set — click to set"}
@@ -386,7 +422,7 @@ export default function AdminRoomDetailPage() {
                     </div>
                     <div>
                         <p className="text-2xl font-black text-white">{hasTimer ? "Set ✓" : "Not Set"}</p>
-                        <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono">Timer {!hasTimer && "— click to set"}</p>
+                        <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono">Timer {hasTimer ? "— click to edit" : "— click to set"}</p>
                     </div>
                 </button>
             </div>
@@ -444,14 +480,23 @@ export default function AdminRoomDetailPage() {
 
             {/* Challenges List */}
             <div className="bg-card/30 border border-border/40 rounded-2xl overflow-hidden">
-                <div className="p-5 border-b border-white/5 flex items-center gap-2">
-                    <Target className="w-5 h-5 text-primary" />
-                    <h2 className="font-bold text-white text-lg">Assigned Challenges</h2>
-                    <Badge className="ml-auto bg-primary/20 text-primary border border-primary/30">{challenges.length}</Badge>
+                <div className="p-5 border-b border-white/5 flex items-center gap-2 justify-between">
+                    <div className="flex items-center gap-2">
+                        <Target className="w-5 h-5 text-primary" />
+                        <h2 className="font-bold text-white text-lg">Assigned Challenges</h2>
+                        <Badge className="ml-2 bg-primary/20 text-primary border border-primary/30">{challenges.length}</Badge>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => setIsSetupOpen(true)} className="border-white/10 hover:border-primary/50 hover:bg-primary/20 hover:text-white transition-all text-xs h-8">
+                        Edit Challenges
+                    </Button>
                 </div>
                 {challenges.length === 0 ? (
-                    <div className="py-12 text-center text-muted-foreground font-mono text-sm">
-                        No challenges assigned. Go back and use Setup to assign challenges.
+                    <div className="py-16 flex flex-col items-center justify-center text-center">
+                        <Target className="w-12 h-12 text-primary/30 mb-4" />
+                        <p className="text-muted-foreground font-mono text-sm mb-4">No challenges assigned to this room yet.</p>
+                        <Button onClick={() => setIsSetupOpen(true)} className="bg-primary/20 text-primary hover:bg-primary hover:text-white border border-primary/50 font-bold uppercase tracking-widest text-xs">
+                            <Plus className="w-4 h-4 mr-2" /> Choose Challenges
+                        </Button>
                     </div>
                 ) : (
                     <div className="divide-y divide-white/5">
@@ -539,6 +584,62 @@ export default function AdminRoomDetailPage() {
                         <Button onClick={handleSetTimer} className="bg-primary text-white hover:bg-primary/90 font-bold">
                             Confirm Timer
                         </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Setup Challenges Dialog */}
+            <Dialog open={isSetupOpen} onOpenChange={setIsSetupOpen}>
+                <DialogContent className="sm:max-w-3xl h-[80vh] flex flex-col bg-black/95 border-primary/20 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
+                    <DialogHeader className="shrink-0 pb-4 border-b border-white/10">
+                        <DialogTitle className="text-white text-xl font-mono uppercase tracking-widest flex items-center gap-2">
+                            <Target className="w-5 h-5 text-primary" /> Assign Challenges
+                        </DialogTitle>
+                        <p className="text-sm text-muted-foreground">Select which global challenges should be injected into [{room?.room_code}]</p>
+                    </DialogHeader>
+                    <div className="py-2 shrink-0 flex gap-2">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
+                            <Input value={searchChall} onChange={e => setSearchChall(e.target.value)} placeholder="Search global tasks..." className="pl-9 bg-black/50 border-white/10" />
+                        </div>
+                        <select
+                            value={filterCategory}
+                            onChange={(e) => setFilterCategory(e.target.value)}
+                            className="bg-black/50 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary w-[160px]"
+                        >
+                            {categoriesList.map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                        {allChallenges
+                            .filter(c => c.title.toLowerCase().includes(searchChall.toLowerCase()))
+                            .filter(c => filterCategory === "All" || c.category === filterCategory)
+                            .map(challenge => {
+                                const isSelected = challenges.some((c: any) => c.challenge_id === challenge.id);
+                                return (
+                                    <div key={challenge.id} onClick={() => toggleChallengeMapping(challenge.id)} className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${isSelected ? 'bg-primary/10 border-primary/40 shadow-[inset_0_0_15px_rgba(239,68,68,0.1)]' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}>
+                                        <div className="flex flex-col gap-1 w-full mr-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold text-white tracking-wide">{challenge.title}</span>
+                                                <Badge variant="outline" className="text-[10px] py-0 h-4 border-white/20 text-muted-foreground">{challenge.difficulty}</Badge>
+                                            </div>
+                                            <span className="text-xs font-mono text-primary/70">{challenge.category} &bull; {challenge.points} pts</span>
+                                        </div>
+                                        <div className="shrink-0">
+                                            {isSelected ? (
+                                                <CheckCircle className="w-5 h-5 text-primary drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]" />
+                                            ) : (
+                                                <div className="w-5 h-5 rounded-full border-2 border-white/20" />
+                                            )}
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                    </div>
+                    <DialogFooter className="shrink-0 pt-4 border-t border-white/10">
+                        <Button className="w-full bg-primary text-white hover:bg-primary/90 font-bold uppercase tracking-widest text-xs" onClick={() => setIsSetupOpen(false)}>Done Choosing Challenges</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
