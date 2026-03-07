@@ -406,13 +406,16 @@ export default function AdminRoomDetailPage() {
                         <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono">Players</p>
                     </div>
                 </div>
-                <div className="bg-card/40 border border-border/40 rounded-2xl p-5 flex items-center gap-4">
-                    <div className="p-3 bg-primary/10 rounded-xl border border-primary/20"><Target className="w-5 h-5 text-primary" /></div>
+                <button
+                    onClick={() => setIsSetupOpen(true)}
+                    className="bg-card/40 border border-border/40 hover:border-primary/30 hover:bg-white/[0.02] rounded-2xl p-5 flex items-center gap-4 text-left transition-all group"
+                >
+                    <div className="p-3 bg-primary/10 rounded-xl border border-primary/20 group-hover:border-primary/40 transition-all"><Target className="w-5 h-5 text-primary" /></div>
                     <div>
                         <p className="text-2xl font-black text-white">{challenges.length}</p>
-                        <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono">Challenges</p>
+                        <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono">Challenges — click to edit</p>
                     </div>
-                </div>
+                </button>
                 <button
                     onClick={() => setIsTimerModalOpen(true)}
                     className={`bg-card/40 border rounded-2xl p-5 flex items-center gap-4 w-full text-left transition-all ${hasTimer ? 'border-green-500/20 hover:border-green-500/40' : 'border-yellow-500/20 hover:border-yellow-500/40'}`}
