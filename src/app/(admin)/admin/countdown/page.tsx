@@ -158,7 +158,10 @@ export default function LKSCountdownPage() {
         setIsRunning(false);
         endTimeRef.current = null;
         if (timerRef.current) clearInterval(timerRef.current);
-        if (roomDbId) await supabase.from("lks_rooms").update({ is_active: false }).eq("id", roomDbId);
+        if (roomDbId) {
+            await supabase.from("lks_rooms").update({ is_active: false }).eq("id", roomDbId);
+            await supabase.from("lks_participants").delete().eq("room_id", roomDbId);
+        }
         setFinalScoreboard([...scoreboard]);
         setShowWinnerOverlay(true);
         if (roomCode) localStorage.removeItem(`lks_timer_${roomCode}`);

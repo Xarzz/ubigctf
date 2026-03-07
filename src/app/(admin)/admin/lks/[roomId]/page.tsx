@@ -281,10 +281,22 @@ export default function AdminRoomDetailPage() {
     };
 
     const handleStop = async () => {
+        if (!confirm("Are you sure you want to stop the simulation? This will remove all participants from the room.")) return;
         const { error } = await supabase.from('lks_rooms').update({ is_active: false }).eq('id', roomId);
         if (!error) {
-            toast.success("Simulation stopped");
+            // Kick all users
+            await supabase.from('lks_participants').delete().eq('room_id', roomId);
+
+            // Clear timer from localStorage
+            if (room?.room_code) {
+                localStorage.removeItem(`lks_timer_${room.room_code}`);
+            }
+
+            toast.success("Simulation stopped and all players removed");
+            setHasTimer(false);
             fetchRoomData();
+        } else {
+            toast.error("Failed to stop simulation");
         }
     };
 
@@ -489,9 +501,6 @@ export default function AdminRoomDetailPage() {
                         <h2 className="font-bold text-white text-lg">Assigned Challenges</h2>
                         <Badge className="ml-2 bg-primary/20 text-primary border border-primary/30">{challenges.length}</Badge>
                     </div>
-                    <Button size="sm" variant="outline" onClick={() => setIsSetupOpen(true)} className="border-white/10 hover:border-primary/50 hover:bg-primary/20 hover:text-white transition-all text-xs h-8">
-                        Edit Challenges
-                    </Button>
                 </div>
                 {challenges.length === 0 ? (
                     <div className="py-16 flex flex-col items-center justify-center text-center">
