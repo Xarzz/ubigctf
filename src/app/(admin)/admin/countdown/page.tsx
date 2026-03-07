@@ -427,29 +427,32 @@ export default function LKSCountdownPage() {
 
                     {/* Config Panel */}
                     {isConfiguring && (
-                        <div className="absolute inset-x-0 mx-auto max-w-lg p-6 bg-black/80 backdrop-blur-xl border border-primary/40 rounded-2xl shadow-[0_0_50px_rgba(239,68,68,0.3)] z-30 animate-in fade-in zoom-in-95 slide-in-from-top-4 duration-300" style={{ top: roomId ? "10%" : "20%" }}>
-                            <h3 className="text-primary font-mono text-sm tracking-widest mb-6 flex items-center gap-2 border-b border-primary/20 pb-4">
-                                <Settings2 className="w-4 h-4" /> TIMER CONFIGURATION
-                            </h3>
-                            <div className="grid grid-cols-3 gap-4 mb-6">
-                                {[["Hours", hours, setHours, 23], ["Minutes", minutes, setMinutes, 59], ["Seconds", seconds, setSeconds, 59]].map(([label, val, setter, max]: any) => (
-                                    <div key={label} className="flex flex-col gap-2 group">
-                                        <label className="text-xs text-muted-foreground font-mono uppercase tracking-wider group-focus-within:text-primary transition-colors">{label}</label>
-                                        <input type="number" min="0" max={max} value={val} onChange={e => setter(parseInt(e.target.value) || 0)}
-                                            className="bg-black/50 border border-primary/30 rounded-lg p-3 text-white font-mono text-xl text-center focus:outline-none focus:border-primary focus:shadow-[0_0_15px_rgba(239,68,68,0.3)] transition-all" />
-                                    </div>
-                                ))}
+                        <>
+                            <div className="fixed inset-0 z-20" onClick={() => setIsConfiguring(false)} />
+                            <div className="absolute inset-x-0 mx-auto max-w-lg p-6 bg-black/80 backdrop-blur-xl border border-primary/40 rounded-2xl shadow-[0_0_50px_rgba(239,68,68,0.3)] z-30 animate-in fade-in zoom-in-95 slide-in-from-top-4 duration-300" style={{ top: roomId ? "10%" : "20%" }}>
+                                <h3 className="text-primary font-mono text-sm tracking-widest mb-6 flex items-center gap-2 border-b border-primary/20 pb-4">
+                                    <Settings2 className="w-4 h-4" /> TIMER CONFIGURATION
+                                </h3>
+                                <div className="grid grid-cols-3 gap-4 mb-6">
+                                    {[["Hours", hours, setHours, 23], ["Minutes", minutes, setMinutes, 59], ["Seconds", seconds, setSeconds, 59]].map(([label, val, setter, max]: any) => (
+                                        <div key={label} className="flex flex-col gap-2 group">
+                                            <label className="text-xs text-muted-foreground font-mono uppercase tracking-wider group-focus-within:text-primary transition-colors">{label}</label>
+                                            <input type="number" min="0" max={max} value={val} onChange={e => setter(parseInt(e.target.value) || 0)}
+                                                className="bg-black/50 border border-primary/30 rounded-lg p-3 text-white font-mono text-xl text-center focus:outline-none focus:border-primary focus:shadow-[0_0_15px_rgba(239,68,68,0.3)] transition-all" />
+                                        </div>
+                                    ))}
+                                </div>
+                                <button onClick={handleApplyConfig} className="w-full py-3 bg-primary/20 border border-primary/50 text-white font-mono uppercase tracking-widest rounded-lg hover:bg-primary hover:text-white transition-all shadow-[0_0_20px_rgba(239,68,68,0.2)] hover:shadow-[0_0_30px_rgba(239,68,68,0.5)] active:scale-[0.98]">
+                                    Apply / Initialize
+                                </button>
+                                <div className="mt-4 flex gap-2">
+                                    {[[4, 0], [2, 0], [1, 0]].map(([hh]) => (
+                                        <button key={hh} onClick={() => { setHours(hh); setMinutes(0); setSeconds(0); }}
+                                            className="flex-1 py-2 text-xs font-mono text-muted-foreground hover:text-primary transition-colors border border-border/40 rounded hover:border-primary/40 bg-white/5 hover:bg-primary/5">{hh}H P-SET</button>
+                                    ))}
+                                </div>
                             </div>
-                            <button onClick={handleApplyConfig} className="w-full py-3 bg-primary/20 border border-primary/50 text-white font-mono uppercase tracking-widest rounded-lg hover:bg-primary hover:text-white transition-all shadow-[0_0_20px_rgba(239,68,68,0.2)] hover:shadow-[0_0_30px_rgba(239,68,68,0.5)] active:scale-[0.98]">
-                                Apply / Initialize
-                            </button>
-                            <div className="mt-4 flex gap-2">
-                                {[[4, 0], [2, 0], [1, 0]].map(([hh]) => (
-                                    <button key={hh} onClick={() => { setHours(hh); setMinutes(0); setSeconds(0); }}
-                                        className="flex-1 py-2 text-xs font-mono text-muted-foreground hover:text-primary transition-colors border border-border/40 rounded hover:border-primary/40 bg-white/5 hover:bg-primary/5">{hh}H P-SET</button>
-                                ))}
-                            </div>
-                        </div>
+                        </>
                     )}
 
                     {/* Timer SVG circle */}
