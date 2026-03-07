@@ -565,7 +565,7 @@ export default function AdminRoomDetailPage() {
 
             {/* Set Timer Dialog */}
             <Dialog open={isTimerModalOpen} onOpenChange={setIsTimerModalOpen}>
-                <DialogContent className="sm:max-w-sm bg-black/95 border-primary/20 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
+                <DialogContent onPointerDownOutside={() => setIsTimerModalOpen(false)} className="sm:max-w-sm bg-black/95 border-primary/20 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
                     <DialogHeader>
                         <DialogTitle className="text-white text-xl font-mono uppercase tracking-widest flex items-center gap-2">
                             <Settings2 className="w-5 h-5 text-primary" /> Set Timer
@@ -602,7 +602,7 @@ export default function AdminRoomDetailPage() {
 
             {/* Setup Challenges Dialog */}
             <Dialog open={isSetupOpen} onOpenChange={setIsSetupOpen}>
-                <DialogContent className="sm:max-w-3xl h-[80vh] flex flex-col bg-black/95 border-primary/20 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
+                <DialogContent onPointerDownOutside={() => setIsSetupOpen(false)} className="sm:max-w-3xl h-[80vh] flex flex-col bg-black/95 border-primary/20 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
                     <DialogHeader className="shrink-0 pb-4 border-b border-white/10">
                         <DialogTitle className="text-white text-xl font-mono uppercase tracking-widest flex items-center gap-2">
                             <Target className="w-5 h-5 text-primary" /> Assign Challenges
