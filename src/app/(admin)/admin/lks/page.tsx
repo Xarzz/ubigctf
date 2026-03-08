@@ -22,6 +22,10 @@ export default function AdminLKSDashboard() {
     const [newTitle, setNewTitle] = useState("");
     const [newCode, setNewCode] = useState("");
 
+    // Delete Room State
+    const [roomToDelete, setRoomToDelete] = useState<any>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
     // Setup challenges state
     const [isSetupOpen, setIsSetupOpen] = useState(false);
     const [selectedRoom, setSelectedRoom] = useState<any>(null);
@@ -93,11 +97,14 @@ export default function AdminLKSDashboard() {
         fetchRooms();
     };
 
-    const handleDeleteRoom = async (roomId: string) => {
-        if (!confirm("Are you sure? This will delete all participant data and submissions for this room!")) return;
-        const { error } = await supabase.from('lks_rooms').delete().eq('id', roomId);
-        if (error) return toast.error("Failed to delete room");
+    const executeDeleteRoom = async () => {
+        if (!roomToDelete) return;
+        setIsDeleting(true);
+        const { error } = await supabase.from('lks_rooms').delete().eq('id', roomToDelete.id);
+        setIsDeleting(false);
+        if (error) return toast.error("Failed to delete room: " + error.message);
         toast.success("Room terminated");
+        setRoomToDelete(null);
         fetchRooms();
     };
 
@@ -200,7 +207,7 @@ export default function AdminLKSDashboard() {
                                 <Button size="sm" className="flex-1 bg-white/10 hover:bg-primary text-white border-none shadow-none hover:shadow-[0_0_15px_rgba(239,68,68,0.5)] transition-all" onClick={() => window.open(`/admin/countdown?room=${room.room_code}`, '_blank')}>
                                     <MonitorPlay className="w-4 h-4 mr-2" /> Project
                                 </Button>
-                                <Button size="icon" variant="destructive" onClick={() => handleDeleteRoom(room.id)} className="shrink-0 bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white border-none">
+                                <Button size="icon" variant="destructive" onClick={() => setRoomToDelete(room)} className="shrink-0 bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white border-none">
                                     <Trash2 className="w-4 h-4" />
                                 </Button>
                             </div>
@@ -230,6 +237,36 @@ export default function AdminLKSDashboard() {
                     <DialogFooter>
                         <Button variant="ghost" onClick={() => setIsCreateOpen(false)} className="hover:text-red-400">Cancel</Button>
                         <Button onClick={handleCreateRoom} className="bg-primary text-white hover:bg-primary/90 font-bold">Create Room</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Room Confirmation Dialog */}
+            <Dialog open={!!roomToDelete} onOpenChange={(open) => !open && setRoomToDelete(null)}>
+                <DialogContent onPointerDownOutside={() => setRoomToDelete(null)} className="sm:max-w-sm bg-black/95 border-red-500/30 shadow-[0_0_30px_rgba(239,68,68,0.3)]">
+                    <DialogHeader>
+                        <DialogTitle className="text-white text-xl font-mono uppercase tracking-widest flex items-center gap-2">
+                            <Trash2 className="w-5 h-5 text-red-400" /> Terminate Room
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4 space-y-3">
+                        <p className="text-sm text-muted-foreground font-mono">
+                            Are you sure you want to delete <span className="text-white font-bold">{roomToDelete?.title}</span>?
+                        </p>
+                        <p className="text-xs text-red-400/70 font-mono bg-red-500/5 border border-red-500/20 rounded-lg px-3 py-2">
+                            ⚠ This will permanently delete all participant data, submissions, and configurations for this room. This action cannot be undone.
+                        </p>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setRoomToDelete(null)} className="hover:text-white" disabled={isDeleting}>Cancel</Button>
+                        <Button
+                            onClick={executeDeleteRoom}
+                            disabled={isDeleting}
+                            className="bg-red-600 hover:bg-red-500 text-white font-bold shadow-[0_0_15px_rgba(239,68,68,0.4)] gap-2"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            {isDeleting ? "Deleting..." : "Yes, Terminate"}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
